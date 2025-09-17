@@ -26,7 +26,8 @@
   },
   "name": "with-prisma",
   "dependencies": {
-    "@prisma/client": "latest"
+    "@prisma/client": "latest",
+    "@xyflow/react": "^12.8.4"
   },
   "packageManager": "bun@1.2.10",
   "workspaces": [

@@ -1,0 +1,9 @@
+{
+  "name": "@repo/queue",
+  "version": "1.0.0",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "dependencies": {
+    "bullmq": "^5.7.8"
+  }
+}

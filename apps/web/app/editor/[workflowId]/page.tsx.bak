@@ -1,0 +1,172 @@
+"use client";
+
+import {
+  Background,
+  Controls,
+  ReactFlow,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+} from "@xyflow  const handleAddNode = (nodeDef: NodeDefination) => {
+    const newNode: SimpleNode = {
+      id: uuidv4(), // Give it a unique ID
+      type: "default", // You can create custom node types
+      position: { x: 200, y: 100 }, // Position it on the canvas
+      data: { label: nodeDef.displayName, type: nodeDef.type }, // Store our type for the backend
+    };
+    // Use spread operator instead of concat to avoid TypeScript errors
+    setNodes((nds) => [...nds, newNode]);
+  };mport "@xyflow/react/dist/style.css";
+
+import { useCallback, useEffect, useState } from "react";
+import { NodeDefination } from "@repo/nodes-registry";
+import { v4 as uuidv4 } from "uuid";
+import { trpc } from "../../../utils/trpc";
+import EditorHeader from "../../../components/EditorHeader";
+import NodeSidebar from "../../../components/NodeSidebar";
+
+// Define simplified types
+type SimpleNode = {
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  data: any;
+};
+
+type SimpleEdge = {
+  id: string;
+  source: string;
+  target: string;
+  type?: string;
+};
+
+type SimpleConnection = {
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+};
+
+export default function EditorPage({
+  params,
+}: {
+  params: { workflowId: string };
+}) {
+  const { data: workflowData, isLoading: isWorkflowLoading } =
+    trpc.workflow.getById.useQuery({ id: params.workflowId });
+  const saveMutation = trpc.workflow.saveVersion.useMutation();
+
+  // React Flow state management
+  const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
+  
+  // Manually manage loading state to avoid type issues
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const onConnect = useCallback(
+    (params: any) => {
+      setEdges((eds) => addEdge({ ...params, id: uuidv4() }, eds));
+    },
+    [setEdges]
+  );
+
+  // Load initial data from the database safely
+  useEffect(() => {
+    if (!workflowData || !workflowData.versions || workflowData.versions.length === 0) {
+      return; // No data to load
+    }
+    
+    try {
+      // Just set empty arrays initially to avoid errors
+      setNodes([]);
+      setEdges([]);
+      
+      // Wait until next render cycle to process data
+      setTimeout(() => {
+        try {
+          // Safer parsing of workflow data
+          const wfData = JSON.parse(JSON.stringify(workflowData));
+          if (wfData?.versions[0]) {
+            const latestVersion = wfData.versions[0];
+            
+            // Set nodes if they exist
+            if (latestVersion.node) {
+              const nodeData = latestVersion.node;
+              const safeNodes = Array.isArray(nodeData) ? nodeData : [];
+              setNodes(safeNodes);
+            }
+            
+            // Set edges if they exist
+            if (latestVersion.connections) {
+              const edgeData = latestVersion.connections;
+              const safeEdges = Array.isArray(edgeData) ? edgeData : [];
+              setEdges(safeEdges);
+            }
+          }
+        } catch (err) {
+          console.error("Error processing workflow data:", err);
+        }
+      }, 10);
+    } catch (error) {
+      console.error("Failed to load workflow data:", error);
+    }
+  }, [workflowData, setNodes, setEdges]);
+
+  // --- Core Functions ---
+
+  const handleSave = () => {
+    setIsSaving(true);
+    saveMutation.mutate(
+      {
+        workflowId: params.workflowId,
+        nodes: nodes,
+        connections: edges,
+      },
+      {
+        onSuccess: () => setIsSaving(false),
+        onError: () => setIsSaving(false),
+      }
+    );
+  };
+
+  const handleAddNode = (nodeDef: NodeDefination) => {
+    const newNode = {
+      id: uuidv4(), // Give it a unique ID
+      type: "default", // You can create custom node types
+      position: { x: 200, y: 100 }, // Position it on the canvas
+      data: { label: nodeDef.displayName, type: nodeDef.type }, // Store our type for the backend
+    };
+    // Use spread operator instead of concat to avoid TypeScript errors
+    setNodes((nds) => [...nds, newNode]);
+  };
+
+  if (isWorkflowLoading) return <div>...Loading Workflow</div>;
+  if (!workflowData) return <div>Workflow not found.</div>;
+
+  return (
+    <div className="flex flex-col h-screen w-screen">
+      <EditorHeader
+        workflowId={params.workflowId}
+        workflowName={workflowData.name}
+        onSave={handleSave}
+        isSaving={isSaving || !!saveMutation.isPending}
+      />
+      <div className="flex flex-grow">
+        <div className="flex-grow h-full">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            fitView
+          >
+            <Background />
+            <Controls />
+          </ReactFlow>
+        </div>
+        <NodeSidebar onNodeClick={handleAddNode} />
+      </div>
+    </div>
+  );
+}

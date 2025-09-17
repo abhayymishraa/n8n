@@ -2,18 +2,163 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 generator client {
-  provider = "prisma-client-js"
-  output = "../generated/client"
+  provider = "prisma-client"
+  output   = "../generated/client"
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
+  id          String        @id @default(uuid())
+  email       String?       @unique
+  password    String?
+  createdAt   DateTime      @default(now())
+  credentials Credentials[]
+  workflows   Workflow[]
+}
+
+model Credentials {
+  id        String   @id @default(uuid())
+  name      String
+  type      String
+  data      String
+  userId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Workflow {
+  id        String   @id @default(uuid())
+  name      String
+  active    Boolean  @default(false)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions      WorkflowVersion[]
+  executions    Execution[]
+  triggers      WorkflowTrigger[]
+  nodeInstances WorkflowNodeInstance[]
+}
+
+model WorkflowNodeInstance {
+  id         String @id @default(uuid())
+  workflowId String
+  nodeId     String
+  nodeType   String
+
+  workflow         Workflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  executionResults ExecutionResult[]
+
+  @@unique([workflowId, nodeId])
+  @@map("workflow_node_instances")
+}
+
+model WorkflowTrigger {
+  id            String      @id @default(uuid())
+  workflowId    String
+  nodeId        String
+  triggerType   TriggerType
+  configuration Json        @default("{}")
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  workflow      Workflow    @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  executions    Execution[]
+
+  @@unique([workflowId, nodeId])
+  @@map("workflow_triggers")
+}
+
+enum TriggerType {
+  MANUAL
+  WEBHOOK
+  SCHEDULE
+}
+
+model Execution {
+  id                String          @id @default(uuid())
+  workflowId        String
+  workflowVersionId String
+  mode              ExecutionMode
+  status            ExecutionStatus @default(QUEUED)
+
+  executionState    Json?
+  resumeNode        String?
+
+  startedAt         DateTime?  
+  finishedAt        DateTime?
+  triggerId         String?
+
+  workflow         Workflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  trigger          WorkflowTrigger?  @relation(fields: [triggerId], references: [id], onDelete: SetNull)
+  executionResults ExecutionResult[]
+  logs             ExecutionLog[]
+}
+
+model ExecutionResult {
+  id             String          @id @default(uuid())
+  executionId    String
+  nodeInstanceId String
+  inputData      Json?
+  outputData     Json?
+  errorMessage   String?
+  status         ExecutionStatus
+  startTime      DateTime?
+  executionTime  Int?
+
+  execution    Execution            @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  nodeInstance WorkflowNodeInstance @relation(fields: [nodeInstanceId], references: [id], onDelete: Cascade)
+}
+
+model ExecutionLog {
+  id          String   @id @default(uuid())
+  executionId String
+  nodeId      String?
+  level       LogLevel
+  message     String
+  timestamp   DateTime @default(now())
+
+  execution Execution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@map("execution_logs")
+}
+
+enum ExecutionMode {
+  MANUAL
+  WEBHOOK
+  SCHEDULE
+}
+
+enum ExecutionStatus {
+  QUEUED
+  RUNNING
+  WAITING
+  COMPLETED  
+  FAILED  
+  CANCELLED
+}
+enum LogLevel {
+  DEUBUG
+  INFO
+  WARN
+  ERROR
+}
+
+model WorkflowVersion {
+  id          String   @id @default(uuid())
+  workflowId  String
+  version     Int
+  changelog   String?
+  createdAt   DateTime @default(now())
+  node        Json
+  connections Json
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, version])
+  @@map("workflow_versions")
 }
