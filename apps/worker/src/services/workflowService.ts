@@ -1,4 +1,5 @@
-import { getImplementation, NodeExecutionContext } from "../nodes/NodeProvider";
+import { getImplementation } from "../nodes/NodeProvider";
+import { NodeExecutionContext } from "../nodes/types";
 import { PrismaClient } from "@repo/database";
 
 export const prisma: PrismaClient = new PrismaClient();
@@ -42,9 +43,14 @@ export class WorkflowRunnerService {
         const implementation = getImplementation(currnetnode.type);
         const instance = nodeinstance.find((ni) => ni.id === nodeId)!;
         const context: NodeExecutionContext = {
+          prisma: prisma,
           workflowId: wv.workflowId,
           executionId: executionId,
           nodeId: currnetnode.id,
+          getNodeConfig: () => ({}),
+          getCredential: async () => null,
+          getCredentialService: () => ({} as any),
+          fullDataPacket: {}
         };
 
         const inputdata = this.mapinputforNode(

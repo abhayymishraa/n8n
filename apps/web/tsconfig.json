@@ -14,7 +14,7 @@
     "**/*.jsx",
     "**/*.mjs",
     ".next/types/**/*.ts"
-  ],
+, "../worker/src/services/WorkflowRunnerService.ts"  ],
   "exclude": [
     "node_modules",
     "postcss.config.mjs"

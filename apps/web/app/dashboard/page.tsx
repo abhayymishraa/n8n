@@ -63,21 +63,41 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Navigation */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-black">Workflows</h1>
-              <p className="mt-1 text-sm text-gray-600">
-                Create and manage your automation workflows
-              </p>
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-8">
+              <h1 className="text-2xl font-bold text-black">n8n Agentic</h1>
+              <nav className="flex space-x-6">
+                <Link href="/dashboard" className="text-black font-medium">
+                  Workflows
+                </Link>
+                <Link href="/credentials" className="text-gray-600 hover:text-black">
+                  Credentials
+                </Link>
+              </nav>
             </div>
-            <button
-              onClick={handleCreateWorkflow}
-              className="bg-black text-white px-6 py-3 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-colors duration-200 font-medium"
-            >
-              Create Workflow
-            </button>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={handleCreateWorkflow}
+                className="bg-black text-white px-6 py-3 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-colors duration-200 font-medium"
+              >
+                Create Workflow
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Page Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="py-6">
+            <h2 className="text-3xl font-bold text-black">Workflows</h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Create and manage your automation workflows
+            </p>
           </div>
         </div>
       </div>
@@ -131,7 +151,7 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {workflows && workflows.length > 0 ? (
           <div className="space-y-4">
-            {workflows.map((workflow) => (
+            {workflows.map((workflow: any) => (
               <div
                 key={workflow.id}
                 className="bg-white border border-gray-200 rounded-lg hover:border-black transition-colors duration-200"

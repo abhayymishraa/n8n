@@ -21,13 +21,27 @@ model User {
 }
 
 model Credentials {
-  id        String   @id @default(uuid())
-  name      String
-  type      String
-  data      String
-  userId    String
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String           @id @default(uuid())
+  name        String
+  type        CredentialType
+  data        Json
+  userId      String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodeInstances WorkflowNodeInstance[]
+}
+
+enum CredentialType {
+  TELEGRAM_BOT
+  GEMINI_API
+  RESEND_EMAIL
+  OPENAI_API
+  WEBHOOK_URL
+  HTTP_BASIC_AUTH
+  API_KEY
+  OAUTH2
+  CUSTOM
 }
 
 model Workflow {
@@ -46,10 +60,13 @@ model Workflow {
 }
 
 model WorkflowNodeInstance {
-  id         String @id @default(uuid())
-  workflowId String
-  nodeId     String
-  nodeType   String
+  id            String      @id @default(uuid())
+  workflowId    String
+  nodeId        String
+  nodeType      String
+  configuration Json        @default("{}")
+  credentialId  String?
+  credential    Credentials? @relation(fields: [credentialId], references: [id], onDelete: SetNull)
 
   workflow         Workflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   executionResults ExecutionResult[]
@@ -142,7 +159,7 @@ enum ExecutionStatus {
   CANCELLED
 }
 enum LogLevel {
-  DEUBUG
+  DEBUG
   INFO
   WARN
   ERROR

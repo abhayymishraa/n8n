@@ -25,6 +25,7 @@ import ConditionNode from "../../../components/Nodes/ConditionNode"
 import TriggerNode from "../../../components/Nodes/TriggerNode"
 import InteractiveEdge from "../../../components/InteractiveEdge"
 import PropertiesModal from "../../../components/PropertiesModal"
+import ExecutionViewer from "../../../components/ExecutionViewer"
 
 type SimpleNode = {
   id: string
@@ -68,6 +69,7 @@ function EditorCanvas({
   const [pendingInsertEdgeId, setPendingInsertEdgeId] = useState<string | null>(null)
   const [selectedNode, setSelectedNode] = useState<any>(null)
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false)
+  const [showExecutionViewer, setShowExecutionViewer] = useState(false)
 
   const handlePaneClick = useCallback(() => {
     if (isSidebarOpen) {
@@ -395,6 +397,16 @@ function EditorCanvas({
 
           <div className="flex items-center space-x-3">
             <button
+              onClick={() => setShowExecutionViewer(!showExecutionViewer)}
+              className="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-[#4de8e8] border border-[rgba(22,73,85,0.5)] hover:border-[#4de8e8]/60 hover:text-[#4de8e8] hover:bg-[rgba(77,232,232,0.12)] transition-all duration-200"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+              <span>Executions</span>
+            </button>
+
+            <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-[#4de8e8] border border-[rgba(22,73,85,0.5)] hover:border-[#4de8e8]/60 hover:text-[#4de8e8] hover:bg-[rgba(77,232,232,0.12)] transition-all duration-200"
             >
@@ -429,7 +441,12 @@ function EditorCanvas({
       </div>
 
       <div className="flex flex-grow">
-        <div ref={reactFlowWrapper} className="flex-grow h-full" onDrop={onDrop} onDragOver={onDragOver}>
+        {showExecutionViewer && (
+          <div className="w-1/2 bg-white border-r border-gray-200 p-4 overflow-y-auto">
+            <ExecutionViewer workflowId={params.workflowId} />
+          </div>
+        )}
+        <div ref={reactFlowWrapper} className={`${showExecutionViewer ? 'w-1/2' : 'w-full'} h-full`} onDrop={onDrop} onDragOver={onDragOver}>
           <ReactFlow
             nodes={nodes}
             edges={edges}

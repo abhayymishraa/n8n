@@ -1,8 +1,21 @@
 import { z } from "zod";
 import { createTrpcRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { workflowQueue, Workfolow_queue_name } from "@repo/queue";
 import { TriggerManagementService } from "../../services/TriggermanagementService";
+
+
+import { Queue } from "bullmq"
+
+
+const connetion = {
+  host: "localhost",
+  port: 6379,
+}
+
+
+
+
+export const workflowQueue = new Queue("workflow-execution", { connection: connetion })
 
 export const workflowRouter = createTrpcRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
@@ -175,13 +188,68 @@ export const workflowRouter = createTrpcRouter({
         },
       });
 
-      await workflowQueue.add(Workfolow_queue_name, {
+      await workflowQueue.add("workflow-execution", {
         executionId: execution.id,
         workflowVersionId: latestversion.id,
         triggerData: { message: "Manual trigger from the api" },
       });
 
       return { executionId: execution.id };
+    }),
+
+  getExecutions: protectedProcedure
+    .input(
+      z.object({
+        workflowId: z.uuid(),
+        limit: z.number().min(1).max(100).default(10),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      return await ctx.prisma.execution.findMany({
+        where: {
+          workflowId: input.workflowId,
+        },
+        include: {
+          executionResults: {
+            include: {
+              nodeInstance: true,
+            },
+          },
+          logs: {
+            orderBy: { timestamp: 'asc' },
+          },
+        },
+        orderBy: { startedAt: 'desc' },
+        take: input.limit,
+      });
+    }),
+
+  getExecutionDetails: protectedProcedure
+    .input(
+      z.object({
+        executionId: z.uuid(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      return await ctx.prisma.execution.findUniqueOrThrow({
+        where: {
+          id: input.executionId,
+        },
+        include: {
+          workflow: {
+            select: { name: true },
+          },
+          executionResults: {
+            include: {
+              nodeInstance: true,
+            },
+            orderBy: { startTime: 'asc' },
+          },
+          logs: {
+            orderBy: { timestamp: 'asc' },
+          },
+        },
+      });
     }),
 });
 

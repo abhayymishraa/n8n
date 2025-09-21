@@ -5,12 +5,106 @@ import { getNodeDefinition, NodeProperty } from '@repo/nodes-registry';
 import { useState, useEffect } from 'react';
 import { IoClose, IoSave } from 'react-icons/io5';
 import { FaCopy } from 'react-icons/fa';
+import { trpc } from '../utils/trpc'
+import { CredentialType } from '../types/credential';
+
+interface CredentialSelectorProps {
+  prop: NodeProperty;
+  currentValue: string;
+  onValueChange: (_value: string) => void;
+  isEmpty: boolean;
+}
+
+function CredentialSelector({ prop, currentValue, onValueChange, isEmpty }: CredentialSelectorProps) {
+  const { data: credentials, isLoading } = trpc.credentials.list.useQuery();
+  
+  // Filter credentials by the allowed types for this property
+  const allowedTypes = prop.credentialTypes || [];
+  const filteredCredentials = credentials?.filter((cred: any) => 
+    allowedTypes.length === 0 || allowedTypes.includes(cred.type as CredentialType)
+  ) || [];
+
+  const inputClassName = `w-full px-3 py-2 bg-[rgba(22,73,85,0.3)] border ${isEmpty ? 'border-red-500' : 'border-[rgba(22,73,85,0.5)]'} rounded-lg text-white placeholder-[#36a5a5] focus:outline-none focus:border-[#4de8e8] focus:ring-1 focus:ring-[#4de8e8]`;
+
+  if (isLoading) {
+    return (
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-[#4de8e8] mb-2">
+          {prop.displayName}
+          {prop.required && <span className="text-red-400 ml-1">*</span>}
+        </label>
+        <div className="p-3 bg-[rgba(22,73,85,0.3)] border border-[rgba(22,73,85,0.5)] rounded-lg">
+          <p className="text-sm text-[#36a5a5]">Loading credentials...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (filteredCredentials.length === 0) {
+    return (
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-[#4de8e8] mb-2">
+          {prop.displayName}
+          {prop.required && <span className="text-red-400 ml-1">*</span>}
+        </label>
+        <div className="p-3 bg-[rgba(22,73,85,0.3)] border border-[rgba(22,73,85,0.5)] rounded-lg">
+          <p className="text-sm text-[#36a5a5] mb-2">No credentials available for this node type.</p>
+          <a 
+            href="/credentials" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-[#4de8e8] hover:underline text-sm"
+          >
+            Create credentials →
+          </a>
+        </div>
+        {isEmpty && (
+          <p className="text-red-400 text-xs mt-1">This field is required</p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-6">
+      <label className="block text-sm font-medium text-[#4de8e8] mb-2">
+        {prop.displayName}
+        {prop.required && <span className="text-red-400 ml-1">*</span>}
+      </label>
+      <select
+        value={currentValue}
+        onChange={(e) => onValueChange(e.target.value)}
+        className={inputClassName}
+      >
+        <option value="">Select a credential...</option>
+        {filteredCredentials.map((credential: any) => (
+          <option key={credential.id} value={credential.id}>
+            {credential.name} ({credential.type})
+          </option>
+        ))}
+      </select>
+      {isEmpty && (
+        <p className="text-red-400 text-xs mt-1">This field is required</p>
+      )}
+      <div className="mt-2">
+        <a 
+          href="/credentials" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-[#4de8e8] hover:underline text-xs"
+        >
+          Manage credentials →
+        </a>
+      </div>
+    </div>
+  );
+}
 
 interface PropertiesModalProps {
   selectedNode: Node | null;
   isOpen: boolean;
   onClose: () => void;
-  onNodeDataChange: (nodeId: string, newData: any) => void;
+  onNodeDataChange: (_nodeId: string, _newData: any) => void;
   workflowData?: any;
 }
 
@@ -18,7 +112,7 @@ export default function PropertiesModal({
   selectedNode, 
   isOpen, 
   onClose, 
-  onNodeDataChange,
+  onNodeDataChange: _onNodeDataChange,
   workflowData 
 }: PropertiesModalProps) {
   const [localInputs, setLocalInputs] = useState<Record<string, any>>({});
@@ -59,8 +153,8 @@ export default function PropertiesModal({
       );
       
       if (missingRequiredFields.length > 0) {
-        if (typeof window !== 'undefined' && window.alert) {
-          window.alert(`Please fill in the required fields: ${missingRequiredFields.map(f => f.displayName).join(', ')}`);
+        if (typeof window !== 'undefined' && (window as any).alert) {
+          (window as any).alert(`Please fill in the required fields: ${missingRequiredFields.map(f => f.displayName).join(', ')}`);
         }
         return;
       }
@@ -70,7 +164,7 @@ export default function PropertiesModal({
       ...selectedNode.data,
       inputs: localInputs,
     };
-    onNodeDataChange(selectedNode.id, newData);
+    _onNodeDataChange(selectedNode.id, newData);
     onClose();
   };
 
@@ -119,8 +213,8 @@ export default function PropertiesModal({
                 </span>
                 <button
                   onClick={() => {
-                    if (typeof window !== 'undefined' && window.navigator && window.navigator.clipboard) {
-                      window.navigator.clipboard.writeText(fullUrl);
+                    if (typeof window !== 'undefined' && (window as any).navigator?.clipboard) {
+                      (window as any).navigator.clipboard.writeText(fullUrl);
                     }
                   }}
                   className="text-xs text-[#4de8e8] hover:underline transition-colors flex items-center gap-1"
@@ -154,7 +248,7 @@ export default function PropertiesModal({
     }
 
     const currentValue = localInputs[prop.name] ?? prop.default ?? '';
-    const isEmpty = prop.required && (!currentValue || currentValue === '');
+    const isEmpty = Boolean(prop.required) && (!currentValue || currentValue === '');
     const inputClassName = `w-full px-3 py-2 bg-[rgba(22,73,85,0.3)] border ${isEmpty ? 'border-red-500' : 'border-[rgba(22,73,85,0.5)]'} rounded-lg text-white placeholder-[#36a5a5] focus:outline-none focus:border-[#4de8e8] focus:ring-1 focus:ring-[#4de8e8]`;
     
     switch (prop.type) {
@@ -252,6 +346,15 @@ export default function PropertiesModal({
             </div>
           </div>
         );
+      
+      case 'credential':
+        return <CredentialSelector 
+          key={prop.name}
+          prop={prop}
+          currentValue={currentValue}
+          onValueChange={(value) => handleInputChange(prop.name, value)}
+          isEmpty={isEmpty}
+        />;
       
       default:
         return (

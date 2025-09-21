@@ -9,6 +9,10 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
+    "@langchain/community": "^0.3.56",
+    "@langchain/core": "^0.3.77",
+    "@langchain/google-genai": "^0.2.18",
+    "@langchain/openai": "^0.6.13",
     "@next-auth/prisma-adapter": "^1.0.7",
     "@prisma/client": "^6.16.1",
     "@tailwindcss/postcss": "^4.1.13",
@@ -21,7 +25,10 @@
     "@vue-flow/core": "^1.46.4",
     "@xyflow/react": "^12.8.5",
     "bcrypt": "^6.0.0",
-    "bullmq": "^5.58.5",
+    "bullmq": "^5.58.7",
+    "expression-eval": "^5.0.1",
+    "langchain": "^0.3.34",
+    "lucide-react": "^0.544.0",
     "next": "^14.1.1",
     "next-auth": "^4.24.11",
     "postcss": "^8.5.6",
