@@ -17,6 +17,7 @@
     "@trpc/react-query": "^11.5.1",
     "@trpc/server": "^11.5.1",
     "@types/bcrypt": "^6.0.0",
+    "@types/react-icons": "^3.0.0",
     "@vue-flow/core": "^1.46.4",
     "@xyflow/react": "^12.8.5",
     "bcrypt": "^6.0.0",

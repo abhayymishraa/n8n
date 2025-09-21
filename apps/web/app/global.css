@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* Global styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* n8n-inspired React Flow styling with dotted green connections */
+/* React Flow drag handle styles */
 .react-flow__node .drag-handle {
   cursor: grab;
 }
@@ -7,15 +20,98 @@
   cursor: grabbing;
 }
 
-/* Dark theme tweaks for React Flow controls */
+/* n8n-style dotted cyan edges */
+.react-flow__edge-path {
+  stroke: #4de8e8 !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 8, 4 !important;
+  filter: drop-shadow(0 0 4px rgba(77, 232, 232, 0.3)) !important;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #4de8e8 !important;
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 0 8px rgba(77, 232, 232, 0.5)) !important;
+}
+
+/* Connection line styling */
+.react-flow__connectionline {
+  stroke: #4de8e8 !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 8, 4 !important;
+}
+
+/* React Flow controls styling for dark theme */
 .react-flow__controls {
-  background: #0b0f19 !important;
-  border-color: #1f2937 !important;
+  background: #0c2025 !important;
+  border: 2px solid #4de8e8 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(77, 232, 232, 0.3) !important;
 }
 .react-flow__controls button {
-  color: #d1d5db !important;
-  fill: #d1d5db !important;
+  color: #4de8e8 !important;
+  fill: #4de8e8 !important;
+  border-bottom: 1px solid #4de8e8 !important;
+  transition: all 0.2s ease !important;
+  background: transparent !important;
 }
+.react-flow__controls button:hover {
+  background-color: #4de8e8 !important;
+  color: #0a1a20 !important;
+  fill: #0a1a20 !important;
+}
+.react-flow__controls button:last-child {
+  border-bottom: none !important;
+}
+
+/* React Flow background pattern */
+.react-flow__background {
+  background-color: #0a1a20 !important;
+}
+
+.react-flow__background .react-flow__background-pattern {
+  fill: rgba(77, 232, 232, 0.15) !important;
+  stroke: rgba(77, 232, 232, 0.2) !important;
+  stroke-width: 0.5 !important;
+}
+
+/* Hide React Flow attribution */
 .react-flow__attribution {
   display: none;
+}
+
+/* Custom scrollbar for sidebar - dark theme */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #0f3039;
+}
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #4de8e8;
+  border-radius: 3px;
+}
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #36a5a5;
+}
+
+/* n8n-style node animations */
+@keyframes nodeGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(77, 232, 232, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(77, 232, 232, 0.4);
+  }
+}
+
+.node-executing {
+  animation: nodeGlow 2s ease-in-out infinite;
+}
+
+/* Enhanced node hover effects */
+.react-flow__node:hover {
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
 }

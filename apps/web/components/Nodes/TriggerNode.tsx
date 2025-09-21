@@ -1,0 +1,44 @@
+"use client"
+
+import { Handle, Position, type NodeProps } from "@xyflow/react"
+
+type TriggerNodeData = {
+  label: string
+}
+
+export default function TriggerNode({ data, selected }: NodeProps) {
+  const d = (data as unknown as TriggerNodeData) || { label: "Trigger" }
+
+  return (
+    <div
+      className={`w-18 h-18 rounded-lg border-2 shadow-lg backdrop-blur-sm transition-all duration-200 focus:outline-none hover:shadow-xl hover:shadow-[#4de8e8]/10 ${
+        selected
+          ? "border-[#4de8e8] shadow-xl shadow-[#4de8e8]/20 bg-[rgba(12,32,37,0.9)]"
+          : "border-[rgba(22,73,85,0.5)] bg-[rgba(12,32,37,0.8)] hover:border-[#4de8e8]/50"
+      }`}
+      role="group"
+      aria-label={`${d.label} node`}
+      tabIndex={0}
+    >
+      <div className="flex flex-col items-center justify-center h-full p-1 drag-handle">
+        <div className="w-4 h-4 rounded-md bg-gradient-to-br from-[#4de8e8]/20 to-[#4de8e8]/30 border border-[#4de8e8]/30 flex items-center justify-center text-[10px] font-bold text-[#4de8e8] shadow-inner mb-0.5">
+          T
+        </div>
+        <div className="text-center">
+          <div className="text-[8px] font-semibold text-[#4de8e8] leading-tight">{d.label || "Trigger"}</div>
+        </div>
+      </div>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-2 !h-2 !bg-[#0a1a20] !border-2 !border-[#4de8e8]/60 hover:!border-[#4de8e8] !shadow-lg hover:!shadow-[#4de8e8]/30 transition-all duration-200"
+        style={{ right: -4 }}
+        aria-label="Output handle"
+        id="out"
+      />
+    </div>
+  )
+}
+
+

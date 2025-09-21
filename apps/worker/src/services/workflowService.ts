@@ -116,7 +116,6 @@ export class WorkflowRunnerService {
     }
 
     if (order.length !== nodes.length) {
-      // This indicates a cycle in the graph, which is an invalid workflow.
       throw new Error("Workflow contains a cycle and cannot be executed.");
     }
     return order;

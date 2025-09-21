@@ -2,6 +2,7 @@ import { z } from "zod";
 import { createTrpcRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { workflowQueue, Workfolow_queue_name } from "@repo/queue";
+import { TriggerManagementService } from "../../services/TriggermanagementService";
 
 export const workflowRouter = createTrpcRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
@@ -16,7 +17,7 @@ export const workflowRouter = createTrpcRouter({
         updatedAt: true,
       },
     });
-  }),
+  } ),
 
   getById: protectedProcedure
     .input(
@@ -35,6 +36,7 @@ export const workflowRouter = createTrpcRouter({
             orderBy: { version: "desc" },
             take: 1,
           },
+          triggers: true
         },
       });
     }),
@@ -86,8 +88,26 @@ export const workflowRouter = createTrpcRouter({
           connections: input.connections,
         },
       });
+
+      await ctx.prisma.workflowNodeInstance.deleteMany({
+        where: {
+          workflowId: input.workflowId,
+        },
+      });
+
+      if (input.nodes && input.nodes.length > 0) {
+        await ctx.prisma.workflowNodeInstance.createMany({
+          data: input.nodes.map((node: any) => ({
+            workflowId: input.workflowId,
+            nodeId: node.id,
+            nodeType: node.type,
+          })),
+        });
+      }
+
       return newversion;
     }),
+
   update: protectedProcedure
     .input(
       z.object({
@@ -96,7 +116,18 @@ export const workflowRouter = createTrpcRouter({
         active: z.boolean().optional(),
       })
     )
-    .mutation(({ ctx, input }) => {
+    .mutation( async ({ ctx, input }) => {
+
+      if( typeof input.active === "boolean"){
+        const triggerService = new TriggerManagementService();
+        if(input.active){
+          await triggerService.deactivateTriggers(input.id);
+          await triggerService.activeTriggers(input.id);
+        } else {
+          await triggerService.deactivateTriggers(input.id)
+        }
+      }
+
       return ctx.prisma.workflow.update({
         where: {
           id: input.id,
@@ -104,7 +135,7 @@ export const workflowRouter = createTrpcRouter({
         },
         data: {
           name: input.name,
-          active: input.active,
+          triggersActive: input.active,
         },
       });
     }),
