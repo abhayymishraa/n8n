@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { trpc } from '../utils/trpc';
 
 interface ExecutionViewerProps {
@@ -19,6 +19,20 @@ export default function ExecutionViewer({ workflowId }: ExecutionViewerProps) {
     { executionId: selectedExecutionId! },
     { enabled: !!selectedExecutionId }
   );
+
+  const nodeIdToLabel = useMemo(() => {
+    const map = new Map<string, string>();
+    const versionNodes = (executionDetails as any)?.workflowVersion?.node as any[] | undefined;
+    if (Array.isArray(versionNodes)) {
+      for (const n of versionNodes) {
+        if (n?.id) {
+          const label = n?.data?.label || n?.data?.name || n?.type || n?.id;
+          map.set(n.id, label);
+        }
+      }
+    }
+    return map;
+  }, [executionDetails]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -64,51 +78,51 @@ export default function ExecutionViewer({ workflowId }: ExecutionViewerProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900">Execution History</h2>
+        <h2 className="text-lg font-semibold text-[#4de8e8] tracking-tight">Executions</h2>
         <button
           onClick={() => refetch()}
-          className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          className="px-3 py-1 text-sm rounded-lg text-[#4de8e8] border border-[rgba(22,73,85,0.5)] hover:border-[#4de8e8]/60 hover:text-[#4de8e8] hover:bg-[rgba(77,232,232,0.12)] transition-colors"
         >
           Refresh
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0 mt-6">
         {/* Executions List */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">Recent Executions</h3>
-          <div className="space-y-2 max-h-96 overflow-y-auto">
+        <div className="flex flex-col min-h-0">
+          <h3 className="text-sm font-medium text-[#36a5a5]">Recent Executions</h3>
+          <div className="flex-1 overflow-auto space-y-2">
             {executions?.map((execution: any) => (
               <div
                 key={execution.id}
-                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                className={`p-4 rounded-lg cursor-pointer transition-colors bg-[rgba(12,32,37,0.8)] border ${
                   selectedExecutionId === execution.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-[#4de8e8] shadow shadow-[#4de8e8]/20'
+                    : 'border-[rgba(22,73,85,0.5)] hover:border-[#4de8e8]/50'
                 }`}
                 onClick={() => setSelectedExecutionId(execution.id)}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(execution.status)}`}>
+                      <span className={`px-2 py-0.5 text-[10px] font-medium rounded-md border border-[rgba(22,73,85,0.5)] text-[#4de8e8]`}>
                         {execution.status}
                       </span>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-xs text-[#36a5a5]">
                         {execution.mode}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-xs text-[#36a5a5]">
                       Started: {execution.startedAt ? new Date(execution.startedAt).toLocaleString() : 'Not started'}
                     </div>
                     {execution.finishedAt && (
-                      <div className="text-sm text-gray-600">
+                      <div className="text-xs text-[#36a5a5]">
                         Finished: {new Date(execution.finishedAt).toLocaleString()}
                       </div>
                     )}
-                    <div className="text-sm text-gray-500 mt-1">
+                    <div className="text-xs text-[#36a5a5] mt-1">
                       {execution.executionResults.length} nodes • {execution.logs.length} logs
                     </div>
                   </div>
@@ -117,7 +131,7 @@ export default function ExecutionViewer({ workflowId }: ExecutionViewerProps) {
             ))}
 
             {(!executions || executions.length === 0) && (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-[#36a5a5]">
                 No executions found. Run your workflow to see results here.
               </div>
             )}
@@ -125,32 +139,30 @@ export default function ExecutionViewer({ workflowId }: ExecutionViewerProps) {
         </div>
 
         {/* Execution Details */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">Execution Details</h3>
+        <div className="flex flex-col min-h-0">
+          <h3 className="text-sm font-medium text-[#36a5a5]">Execution Details</h3>
           
           {selectedExecutionId && executionDetails ? (
-            <div className="space-y-4">
+            <div className="flex-1 overflow-auto space-y-4">
               {/* Basic Info */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">Basic Information</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="p-4 rounded-lg bg-[rgba(12,32,37,0.8)] border border-[rgba(22,73,85,0.5)]">
+                <h4 className="font-medium text-[#4de8e8] mb-2">Basic Information</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs text-[#36a5a5]">
                   <div>
-                    <span className="text-gray-600">Workflow:</span>
-                    <span className="ml-2 font-medium">{executionDetails.workflow.name}</span>
+                    <span>Workflow:</span>
+                    <span className="ml-2 font-medium text-[#4de8e8]">{executionDetails.workflow.name}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Status:</span>
-                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(executionDetails.status)}`}>
-                      {executionDetails.status}
-                    </span>
+                    <span>Status:</span>
+                    <span className={`ml-2 px-2 py-0.5 text-[10px] font-medium rounded-md border border-[rgba(22,73,85,0.5)] text-[#4de8e8]`}>{executionDetails.status}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Mode:</span>
-                    <span className="ml-2">{executionDetails.mode}</span>
+                    <span>Mode:</span>
+                    <span className="ml-2 text-[#4de8e8]">{executionDetails.mode}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Duration:</span>
-                    <span className="ml-2">
+                    <span>Duration:</span>
+                    <span className="ml-2 text-[#4de8e8]">
                       {executionDetails.startedAt && executionDetails.finishedAt
                         ? `${Math.round((new Date(executionDetails.finishedAt).getTime() - new Date(executionDetails.startedAt).getTime()) / 1000)}s`
                         : 'N/A'}
@@ -160,28 +172,24 @@ export default function ExecutionViewer({ workflowId }: ExecutionViewerProps) {
               </div>
 
               {/* Node Results */}
-              <div className="bg-white border rounded-lg">
-                <div className="p-4 border-b">
-                  <h4 className="font-medium text-gray-900">Node Execution Results</h4>
+              <div className="rounded-lg bg-[rgba(12,32,37,0.8)] border border-[rgba(22,73,85,0.5)]">
+                <div className="p-4 border-b border-[rgba(22,73,85,0.5)]">
+                  <h4 className="font-medium text-[#4de8e8]">Node Execution Results</h4>
                 </div>
-                <div className="max-h-64 overflow-y-auto">
+                <div>
                   {executionDetails.executionResults.map((result: any, index: number) => (
-                    <div key={result.id} className="p-4 border-b last:border-b-0">
+                    <div key={result.id} className="p-4 border-b last:border-b-0 border-[rgba(22,73,85,0.5)]">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <span className="font-medium text-gray-900">
-                            {result.nodeInstance.nodeType}
+                          <span className="font-medium text-[#4de8e8]">
+                            {nodeIdToLabel.get(result.nodeInstance.nodeId) || result.nodeInstance.nodeType}
                           </span>
-                          <span className="ml-2 text-sm text-gray-500">
-                            ({result.nodeInstance.nodeId})
-                          </span>
+                          <span className="ml-2 text-xs text-[#36a5a5]">({result.nodeInstance.nodeType})</span>
                         </div>
                         <div className="text-right">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(result.status)}`}>
-                            {result.status}
-                          </span>
+                          <span className={`px-2 py-0.5 text-[10px] font-medium rounded-md border border-[rgba(22,73,85,0.5)] text-[#4de8e8]`}>{result.status}</span>
                           {result.executionTime && (
-                            <div className="text-sm text-gray-500 mt-1">
+                            <div className="text-xs text-[#36a5a5] mt-1">
                               {result.executionTime}ms
                             </div>
                           )}
@@ -190,19 +198,19 @@ export default function ExecutionViewer({ workflowId }: ExecutionViewerProps) {
                       
                       {result.outputData && (
                         <details className="mt-2">
-                          <summary className="text-sm text-blue-600 cursor-pointer hover:text-blue-800">
+                          <summary className="text-xs text-[#36a5a5] cursor-pointer hover:text-[#4de8e8]">
                             View Output Data
                           </summary>
-                          <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-x-auto">
+                          <pre className="mt-2 text-[11px] bg-[#0a1a20] text-[#d1d5db] p-2 rounded overflow-x-auto border border-[rgba(22,73,85,0.5)]">
                             {JSON.stringify(result.outputData, null, 2)}
                           </pre>
                         </details>
                       )}
 
                       {result.errorMessage && (
-                        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
-                          <span className="text-sm text-red-600 font-medium">Error: </span>
-                          <span className="text-sm text-red-600">{result.errorMessage}</span>
+                        <div className="mt-2 p-2 rounded border border-red-900/40 bg-[rgba(239,68,68,0.12)]">
+                          <span className="text-xs text-red-300 font-medium">Error: </span>
+                          <span className="text-xs text-red-300">{result.errorMessage}</span>
                         </div>
                       )}
                     </div>
@@ -211,25 +219,25 @@ export default function ExecutionViewer({ workflowId }: ExecutionViewerProps) {
               </div>
 
               {/* Execution Logs */}
-              <div className="bg-white border rounded-lg">
-                <div className="p-4 border-b">
-                  <h4 className="font-medium text-gray-900">Execution Logs</h4>
+              <div className="rounded-lg bg-[rgba(12,32,37,0.8)] border border-[rgba(22,73,85,0.5)]">
+                <div className="p-4 border-b border-[rgba(22,73,85,0.5)]">
+                  <h4 className="font-medium text-[#4de8e8]">Execution Logs</h4>
                 </div>
-                <div className="max-h-64 overflow-y-auto">
+                <div>
                   {executionDetails.logs.map((log: any, index: number) => (
-                    <div key={log.id} className="p-3 border-b last:border-b-0 font-mono text-sm">
+                    <div key={log.id} className="p-3 border-b last:border-b-0 font-mono text-xs border-[rgba(22,73,85,0.5)]">
                       <div className="flex items-start gap-3">
-                        <span className="text-xs text-gray-500 whitespace-nowrap">
+                        <span className="text-[10px] text-[#36a5a5] whitespace-nowrap">
                           {new Date(log.timestamp).toLocaleTimeString()}
                         </span>
-                        <span className={`text-xs font-medium px-2 py-1 rounded ${getLogLevelColor(log.level)}`}>
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md border border-[rgba(22,73,85,0.5)] text-[#4de8e8]`}>
                           {log.level}
                         </span>
-                        <span className="flex-1 text-gray-800">{log.message}</span>
+                        <span className="flex-1 text-[#e5e7eb]">{log.message}</span>
                       </div>
                       {log.nodeId && (
-                        <div className="ml-20 text-xs text-gray-500 mt-1">
-                          Node: {log.nodeId}
+                        <div className="ml-20 text-[10px] text-[#36a5a5] mt-1">
+                          Node: <span className="text-[#4de8e8]">{nodeIdToLabel.get(log.nodeId) || log.nodeId}</span>
                         </div>
                       )}
                     </div>
@@ -238,7 +246,7 @@ export default function ExecutionViewer({ workflowId }: ExecutionViewerProps) {
               </div>
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-[#36a5a5]">
               Select an execution to view details
             </div>
           )}

@@ -11,6 +11,7 @@ import {
   addEdge,
   ReactFlowProvider,
   useReactFlow,
+  MiniMap,
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 
@@ -69,7 +70,9 @@ function EditorCanvas({
   const [pendingInsertEdgeId, setPendingInsertEdgeId] = useState<string | null>(null)
   const [selectedNode, setSelectedNode] = useState<any>(null)
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false)
+  const [propertiesInitialTab, setPropertiesInitialTab] = useState<'properties' | 'output'>('properties')
   const [showExecutionViewer, setShowExecutionViewer] = useState(false)
+  const initializedRef = useRef<string | null>(null)
 
   const handlePaneClick = useCallback(() => {
     if (isSidebarOpen) {
@@ -79,6 +82,13 @@ function EditorCanvas({
 
   const handleNodeDoubleClick = useCallback((_event: React.MouseEvent, node: any) => {
     setSelectedNode(node)
+    setPropertiesInitialTab('properties')
+    setIsPropertiesModalOpen(true)
+  }, [])
+
+  const handleNodeClick = useCallback((_event: React.MouseEvent, node: any) => {
+    setSelectedNode(node)
+    setPropertiesInitialTab('output')
     setIsPropertiesModalOpen(true)
   }, [])
 
@@ -131,36 +141,37 @@ function EditorCanvas({
       return
     }
 
+    // Prevent re-initializing graph state after the first successful load for this workflow
+    if (initializedRef.current === params.workflowId) {
+      return
+    }
+
     try {
-      setNodes([])
-      setEdges([])
+      const wfData = JSON.parse(JSON.stringify(workflowData))
+      if (wfData?.versions[0]) {
+        const latestVersion = wfData.versions[0]
 
-      setTimeout(() => {
-        try {
-          const wfData = JSON.parse(JSON.stringify(workflowData))
-          if (wfData?.versions[0]) {
-            const latestVersion = wfData.versions[0]
-
-            if (latestVersion.node) {
-              const nodeData = latestVersion.node
-              const safeNodes = Array.isArray(nodeData) ? nodeData : []
-              setNodes(safeNodes)
-            }
-
-            if (latestVersion.connections) {
-              const edgeData = latestVersion.connections
-              const safeEdges = (Array.isArray(edgeData) ? edgeData : []).map((e: any) => ({ ...e, type: "interactive" }))
-              setEdges(safeEdges)
-            }
-          }
-        } catch (err) {
-          console.error("Error processing workflow data:", err)
+        if (latestVersion.node) {
+          const nodeData = latestVersion.node
+          const safeNodes = Array.isArray(nodeData) ? nodeData : []
+          setNodes(safeNodes)
+        } else {
+          setNodes([])
         }
-      }, 10)
+
+        if (latestVersion.connections) {
+          const edgeData = latestVersion.connections
+          const safeEdges = (Array.isArray(edgeData) ? edgeData : []).map((e: any) => ({ ...e, type: "interactive" }))
+          setEdges(safeEdges)
+        } else {
+          setEdges([])
+        }
+      }
+      initializedRef.current = params.workflowId
     } catch (error) {
       console.error("Failed to load workflow data:", error)
     }
-  }, [workflowData, setNodes, setEdges])
+  }, [workflowData, params.workflowId, setNodes, setEdges])
 
   const handleSave = () => {
     setIsSaving(true)
@@ -182,9 +193,21 @@ function EditorCanvas({
 
   const handleExecuteManual = () => {
     setIsExecuting(true)
+    let triggerData: any = undefined
+    if (typeof window !== 'undefined' && (window as any).prompt) {
+      try {
+        const raw = (window as any).prompt('Optional: Enter trigger JSON (leave empty for default)', '{"message":"Manual trigger from UI"}')
+        if (raw && raw.trim().length > 0) {
+          triggerData = JSON.parse(raw)
+        }
+      } catch (e) {
+        console.error('Invalid JSON provided for trigger data, ignoring.', e)
+      }
+    }
     executeManualMutation.mutate(
       {
         workflowid: params.workflowId,
+        triggerData,
       },
       {
         onSuccess: (data) => {
@@ -373,7 +396,7 @@ function EditorCanvas({
   if (!workflowData) return <div>Workflow not found.</div>
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[linear-gradient(180deg,rgba(10,26,32,1)_0%,rgba(10,26,32,1)_100%)]">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[linear-gradient(180deg,rgba(10,26,32,1)_0%,rgba(10,26,32,1)_100%)]">
       <div className="bg-[rgba(12,32,37,0.85)] backdrop-blur-md border-b border-[rgba(22,73,85,0.5)] px-5 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.25)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -440,13 +463,14 @@ function EditorCanvas({
         </div>
       </div>
 
-      <div className="flex flex-grow">
+      <div className="flex flex-grow overflow-hidden">
         {showExecutionViewer && (
-          <div className="w-1/2 bg-white border-r border-gray-200 p-4 overflow-y-auto">
+          <div className="w-full bg-[#0c2025] border-r border-[#164955] p-4 overflow-y-auto">
             <ExecutionViewer workflowId={params.workflowId} />
           </div>
         )}
-        <div ref={reactFlowWrapper} className={`${showExecutionViewer ? 'w-1/2' : 'w-full'} h-full`} onDrop={onDrop} onDragOver={onDragOver}>
+        {!showExecutionViewer && (
+        <div ref={reactFlowWrapper} className={`w-full h-full`} onDrop={onDrop} onDragOver={onDragOver}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -454,27 +478,36 @@ function EditorCanvas({
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onPaneClick={handlePaneClick}
+            onNodeClick={handleNodeClick}
             onNodeDoubleClick={handleNodeDoubleClick}
             nodeTypes={{ flowNode: FlowNode, conditionNode: ConditionNode, triggerNode: TriggerNode }}
             edgeTypes={{ interactive: InteractiveEdge }}
-            style={{ backgroundColor: '#0a1a20' }}
+            style={{ backgroundColor: '#000000' }}
             proOptions={{ hideAttribution: true }}
             fitView
             fitViewOptions={{ padding: 0.05 }}
             defaultViewport={{ x: 0, y: 0, zoom: 0.2 }}
             defaultEdgeOptions={{
               style: {
-                stroke: "#4de8e8",
+                stroke: "#000000",
                 strokeWidth: 2,
                 strokeDasharray: "8,4",
               },
               type: "interactive",
             }}
           >
-            <Background color="rgba(77, 232, 232, 0.12)" gap={28} size={1} style={{ backgroundColor: "#0a1a20" }} />
+            <Background color="#000000" gap={28} size={1} style={{ backgroundColor: "#000000" }} />
             <Controls />
+            <MiniMap
+              nodeColor={() => '#164955'}
+              nodeStrokeColor={() => '#4de8e8'}
+              nodeStrokeWidth={1}
+              maskColor="rgba(10,26,32,0.85)"
+              style={{ backgroundColor: '#0a1a20' }}
+            />
           </ReactFlow>
         </div>
+        )}
         <NodeSidebar onNodeClick={handleAddNode} isOpen={isSidebarOpen} />
       </div>
       
@@ -484,6 +517,7 @@ function EditorCanvas({
         onClose={() => setIsPropertiesModalOpen(false)}
         onNodeDataChange={handleNodeDataChange}
         workflowData={workflowData}
+        initialTab={propertiesInitialTab}
       />
     </div>
   )

@@ -106,6 +106,7 @@ interface PropertiesModalProps {
   onClose: () => void;
   onNodeDataChange: (_nodeId: string, _newData: any) => void;
   workflowData?: any;
+  initialTab?: 'properties' | 'output';
 }
 
 export default function PropertiesModal({ 
@@ -113,9 +114,31 @@ export default function PropertiesModal({
   isOpen, 
   onClose, 
   onNodeDataChange: _onNodeDataChange,
-  workflowData 
+  workflowData,
+  initialTab = 'properties',
 }: PropertiesModalProps) {
   const [localInputs, setLocalInputs] = useState<Record<string, any>>({});
+  const [activeTab, setActiveTab] = useState<'properties' | 'output'>(initialTab);
+
+  // Keep tab in sync when modal opens with a different initialTab
+  useEffect(() => {
+    if (isOpen) setActiveTab(initialTab);
+  }, [isOpen, initialTab]);
+
+  // Fetch latest execution details to show this node's last output
+  const workflowId = workflowData?.id as string | undefined;
+  const { data: latestExecutions } = trpc.workflow.getExecutions.useQuery(
+    { workflowId: workflowId as string, limit: 1 },
+    { enabled: !!workflowId }
+  );
+  const latestExecutionId = latestExecutions && latestExecutions[0]?.id;
+  const { data: latestExecutionDetails } = trpc.workflow.getExecutionDetails.useQuery(
+    { executionId: latestExecutionId as string },
+    { enabled: !!latestExecutionId }
+  );
+  const nodeExecutionResult = (latestExecutionDetails?.executionResults || []).find(
+    (r: any) => r?.nodeInstance?.nodeId === selectedNode?.id
+  );
 
   // Initialize local inputs when node changes
   useEffect(() => {
@@ -403,15 +426,98 @@ export default function PropertiesModal({
             </button>
           </div>
           
+          {/* Tabs */}
+          <div className="px-6 pt-4">
+            <div className="flex gap-2">
+              <button
+                className={`px-3 py-1.5 text-sm rounded-md border ${activeTab === 'properties' ? 'border-[#4de8e8] text-[#4de8e8] bg-[rgba(77,232,232,0.1)]' : 'border-[rgba(22,73,85,0.5)] text-[#36a5a5] hover:text-[#4de8e8]'}`}
+                onClick={() => setActiveTab('properties')}
+              >
+                Properties
+              </button>
+              <button
+                className={`px-3 py-1.5 text-sm rounded-md border ${activeTab === 'output' ? 'border-[#4de8e8] text-[#4de8e8] bg-[rgba(77,232,232,0.1)]' : 'border-[rgba(22,73,85,0.5)] text-[#36a5a5] hover:text-[#4de8e8]'}`}
+                onClick={() => setActiveTab('output')}
+              >
+                Output
+              </button>
+            </div>
+          </div>
+
           {/* Content */}
           <div className="p-6 overflow-y-auto max-h-[60vh]">
-            {!nodeDef.properties || nodeDef.properties.length === 0 ? (
-              <p className="text-[#36a5a5] text-center py-8">
-                This node has no configurable properties.
-              </p>
-            ) : (
-              <div>
-                {nodeDef.properties.map(renderProperty)}
+            {activeTab === 'properties' && (
+              !nodeDef.properties || nodeDef.properties.length === 0 ? (
+                <p className="text-[#36a5a5] text-center py-8">
+                  This node has no configurable properties.
+                </p>
+              ) : (
+                <div>
+                  {nodeDef.properties.map(renderProperty)}
+
+                  {/* Data access help */}
+                  <div className="mt-6 p-4 rounded-lg bg-[rgba(10,20,22,0.8)] border border-[rgba(22,73,85,0.5)]">
+                    <h4 className="font-medium text-[#4de8e8] mb-2">How to reference data from other nodes</h4>
+                    <div className="space-y-2 text-xs text-[#36a5a5]">
+                      <p>
+                        Use templating with <span className="text-[#4de8e8] font-mono">{'{{ }}'}</span> to reference values from previous nodes.
+                      </p>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>
+                          <span className="text-[#4de8e8]">Trigger data</span>: <span className="font-mono">{'{{ trigger.body.message }}'}</span>
+                        </li>
+                        <li>
+                          <span className="text-[#4de8e8]">Previous node output</span> (by label or id): <span className="font-mono">{'{{ nodes["Node Label"].output.key }}'}</span> or <span className="font-mono">{'{{ nodes["<node-id>"].output.key }}'}</span>
+                        </li>
+                        <li>
+                          <span className="text-[#4de8e8]">Entire output</span>: <span className="font-mono">{'{{ nodes["Node Label"].output }}'}</span>
+                        </li>
+                        <li>
+                          <span className="text-[#4de8e8]">AI/Agent nodes</span> often return <span className="font-mono">text</span> and <span className="font-mono">metadata</span>: <span className="font-mono">{'{{ nodes["AI"].output.text }}'}</span>
+                        </li>
+                      </ul>
+                      <div className="mt-2 p-2 bg-[rgba(5,15,18,0.8)] border border-[rgba(22,73,85,0.3)] rounded">
+                        <p className="text-[#4de8e8] mb-1">Example:</p>
+                        <pre className="text-[11px] text-[#d1d5db] font-mono whitespace-pre-wrap">{"Send to {{ nodes[\"Summarize\"].output.text }}"}</pre>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
+
+            {activeTab === 'output' && (
+              <div className="space-y-3">
+                {!latestExecutionId && (
+                  <div className="text-[#36a5a5] text-sm">No executions yet. Run the workflow to see outputs.</div>
+                )}
+                {latestExecutionId && !nodeExecutionResult && (
+                  <div className="text-[#36a5a5] text-sm">This node did not run in the latest execution.</div>
+                )}
+                {nodeExecutionResult && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="px-2 py-0.5 rounded-md border border-[rgba(22,73,85,0.5)] text-[#4de8e8]">{nodeExecutionResult.status}</span>
+                      {typeof nodeExecutionResult.executionTime === 'number' && (
+                        <span className="text-[#36a5a5]">{nodeExecutionResult.executionTime}ms</span>
+                      )}
+                    </div>
+                    {nodeExecutionResult.errorMessage && (
+                      <div className="p-2 rounded border border-red-900/40 bg-[rgba(239,68,68,0.12)] text-xs text-red-300">
+                        Error: {nodeExecutionResult.errorMessage}
+                      </div>
+                    )}
+                    <div>
+                      <h4 className="text-xs font-medium text-[#4de8e8] mb-1">Input</h4>
+                      <pre className="text-[11px] bg-[#0a1a20] text-[#d1d5db] p-2 rounded overflow-x-auto border border-[rgba(22,73,85,0.5)]">{JSON.stringify(nodeExecutionResult.inputData, null, 2)}</pre>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-medium text-[#4de8e8] mb-1">Output</h4>
+                      <pre className="text-[11px] bg-[#0a1a20] text-[#d1d5db] p-2 rounded overflow-x-auto border border-[rgba(22,73,85,0.5)]">{JSON.stringify(nodeExecutionResult.outputData, null, 2)}</pre>
+                    </div>
+                    <div className="text-[10px] text-[#36a5a5]">From latest execution: {new Date(latestExecutionDetails?.startedAt || Date.now()).toLocaleString()}</div>
+                  </div>
+                )}
               </div>
             )}
           </div>

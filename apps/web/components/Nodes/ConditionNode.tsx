@@ -15,7 +15,7 @@ export default function ConditionNode({ data, selected }: NodeProps) {
         selected
           ? "border-[#4de8e8] shadow-xl shadow-[#4de8e8]/20 bg-[rgba(12,32,37,0.9)]"
           : "border-[rgba(22,73,85,0.5)] bg-[rgba(12,32,37,0.8)] hover:border-[#4de8e8]/50"
-      }`}
+      } relative`}
       role="group"
       aria-label={`${d.label} node`}
       tabIndex={0}
@@ -29,10 +29,13 @@ export default function ConditionNode({ data, selected }: NodeProps) {
         </div>
       </div>
 
+      <h3 className="text-[6px] text-[#4de8e8]" style={{ position: 'absolute', right: 2, top: '20%', userSelect: 'none' }}>True</h3>
+      <h3 className="text-[6px] text-[#4de8e8]" style={{ position: 'absolute', right: 2, top: '60%', userSelect: 'none' }}>False</h3>
+
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-2 !h-2 !bg-[#0a1a20] !border-2 !border-[#4de8e8]/60 hover:!border-[#4de8e8] !shadow-lg hover:!shadow-[#4de8e8]/30 transition-all duration-200"
+        className="!w-1.5 !h-1.5 !bg-[#0a1a20] !border !border-[#4de8e8]/60 hover:!border-[#4de8e8] !shadow-lg hover:!shadow-[#4de8e8]/30 transition-all duration-200"
         style={{ left: -4 }}
         aria-label="Input handle"
         id="in"
@@ -40,7 +43,7 @@ export default function ConditionNode({ data, selected }: NodeProps) {
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-2 !h-2 !bg-[#0a1a20] !border-2 !border-[#4de8e8]/60 hover:!border-[#4de8e8] !shadow-lg hover:!shadow-[#4de8e8]/30 transition-all duration-200"
+        className="!w-1.5 !h-1.5 !bg-[#0a1a20] !border !border-[#4de8e8]/60 hover:!border-[#4de8e8] !shadow-lg hover:!shadow-[#4de8e8]/30 transition-all duration-200"
         style={{ right: -4, top: "30%" }}
         aria-label="True output"
         id="true"
@@ -48,7 +51,7 @@ export default function ConditionNode({ data, selected }: NodeProps) {
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-2 !h-2 !bg-[#0a1a20] !border-2 !border-[#4de8e8]/60 hover:!border-[#4de8e8] !shadow-lg hover:!shadow-[#4de8e8]/30 transition-all duration-200"
+        className="!w-1.5 !h-1.5 !bg-[#0a1a20] !border !border-[#4de8e8]/60 hover:!border-[#4de8e8] !shadow-lg hover:!shadow-[#4de8e8]/30 transition-all duration-200"
         style={{ right: -4, top: "70%" }}
         aria-label="False output"
         id="false"

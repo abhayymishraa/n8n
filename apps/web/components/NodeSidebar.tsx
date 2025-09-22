@@ -120,7 +120,7 @@ export default function NodeSidebar({ onNodeClick, isOpen }: NodeSidebarProps) {
   if (!isOpen) return null
 
   return (
-    <aside className="w-80 h-full bg-[rgba(10,26,32,0.9)] backdrop-blur-md border-l border-[rgba(22,73,85,0.5)] shadow-[0_-8px_30px_rgba(0,0,0,0.3)]">
+    <aside className="w-80 h-full bg-[rgba(10,26,32,0.9)] backdrop-blur-md border-l border-[rgba(22,73,85,0.5)] shadow-[0_-8px_30px_rgba(0,0,0,0.3)] overflow-y-auto">
       <div className="p-5">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-sm font-semibold text-[#4de8e8] tracking-tight">What happens next?</h2>

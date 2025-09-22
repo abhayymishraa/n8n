@@ -22,6 +22,7 @@ export default function InteractiveEdge(props: EdgeProps) {
     sourcePosition,
     targetPosition,
     markerEnd,
+    sourceHandle,
   } = props;
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -83,6 +84,26 @@ export default function InteractiveEdge(props: EdgeProps) {
         onMouseLeave={scheduleHideControls}
       />
       <EdgeLabelRenderer>
+        {/* Conditional branch label at the end of the edge (near target) */}
+        {sourceHandle && (sourceHandle === "true" || sourceHandle === "false") && (
+          <div
+            style={{
+              position: "absolute",
+              transform: `translate(-50%, -50%) translate(${targetX}px, ${targetY}px) translate(-8px, -8px)`,
+              pointerEvents: "none",
+            }}
+          >
+            <span
+              className={
+                sourceHandle === "true"
+                  ? "text-[9px] px-1.5 py-0.5 rounded bg-[rgba(34,197,94,0.15)] text-green-300 border border-green-900/40"
+                  : "text-[9px] px-1.5 py-0.5 rounded bg-[rgba(239,68,68,0.12)] text-red-300 border border-red-900/40"
+              }
+            >
+              {sourceHandle === "true" ? "True" : "False"}
+            </span>
+          </div>
+        )}
         <div
           style={{
             position: "absolute",

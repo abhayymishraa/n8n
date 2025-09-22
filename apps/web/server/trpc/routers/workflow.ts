@@ -157,6 +157,7 @@ export const workflowRouter = createTrpcRouter({
     .input(
       z.object({
         workflowid: z.uuid(),
+        triggerData: z.any().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -191,7 +192,7 @@ export const workflowRouter = createTrpcRouter({
       await workflowQueue.add("workflow-execution", {
         executionId: execution.id,
         workflowVersionId: latestversion.id,
-        triggerData: { message: "Manual trigger from the api" },
+        triggerData: input.triggerData ?? { message: "Manual trigger from the api" },
       });
 
       return { executionId: execution.id };
@@ -231,25 +232,29 @@ export const workflowRouter = createTrpcRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      return await ctx.prisma.execution.findUniqueOrThrow({
-        where: {
-          id: input.executionId,
-        },
+      // Fetch execution with related info and the workflowVersionId for a second query
+      const exec = await ctx.prisma.execution.findUniqueOrThrow({
+        where: { id: input.executionId },
         include: {
-          workflow: {
-            select: { name: true },
-          },
+          workflow: { select: { name: true } },
           executionResults: {
-            include: {
-              nodeInstance: true,
-            },
+            include: { nodeInstance: true },
             orderBy: { startTime: 'asc' },
           },
-          logs: {
-            orderBy: { timestamp: 'asc' },
-          },
+          logs: { orderBy: { timestamp: 'asc' } },
         },
       });
+
+      // Fetch the workflow version to access nodes; relation is not declared in Prisma
+      const version = await ctx.prisma.workflowVersion.findUnique({
+        where: { id: exec.workflowVersionId },
+        select: { node: true },
+      });
+
+      return {
+        ...exec,
+        workflowVersion: { node: version?.node ?? [] },
+      } as any;
     }),
 });
 

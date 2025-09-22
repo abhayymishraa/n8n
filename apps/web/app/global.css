@@ -66,7 +66,7 @@ body {
 
 /* React Flow background pattern */
 .react-flow__background {
-  background-color: #0a1a20 !important;
+  background-color: #000000 !important;
 }
 
 .react-flow__background .react-flow__background-pattern {
