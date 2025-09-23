@@ -5,11 +5,110 @@
   box-sizing: border-box;
 }
 
+:root {
+  /* Primary Palette */
+  --primary: #1c9cf0;
+  --primary-foreground: #ffffff;
+
+  /* Secondary Palette */
+  --secondary: #f0f3f4;
+  --secondary-foreground: #0f1419;
+
+  /* Accent Palette */
+  --accent: #061622;
+  --accent-foreground: #1c9cf0;
+
+  /* Base */
+  --background: #000000;
+  --foreground: #e7e9ea;
+
+  /* Card */
+  --card: #17181c;
+  --card-foreground: #d9d9d9;
+
+  /* Popover */
+  --popover: #000000;
+  --popover-foreground: #e7e9ea;
+
+  /* Muted */
+  --muted: #181818;
+  --muted-foreground: #72767a;
+
+  /* Destructive */
+  --destructive: #f4212e;
+  --destructive-foreground: #ffffff;
+
+  /* Border & Inputs */
+  --border: #242628;
+  --input: #22303c;
+  --ring: #1da1f2;
+
+  /* Sidebar */
+  --sidebar: #17181c;
+  --sidebar-foreground: #d9d9d9;
+  --sidebar-primary: #1da1f2;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #061622;
+  --sidebar-accent-foreground: #1c9cf0;
+  --sidebar-border: #38444d;
+  --sidebar-ring: #1da1f2;
+
+  /* Chart Colors */
+  --chart-1: #1e9df1;
+  --chart-2: #00b87a;
+  --chart-3: #f7b928;
+  --chart-4: #17bf63;
+  --chart-5: #e0245e;
+
+  /* Typography */
+  --font-sans: 'Anek Latin', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
+  --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --letter-spacing: 0em;
+
+  /* Radius, Spacing, Shadow */
+  --radius: 0.35rem;
+  --spacing: 0.25rem;
+  --shadow-color: 240 30% 25%;
+  --shadow-opacity: 0.12;
+  --shadow-blur: 6px;
+  --shadow-spread: 0px;
+  --shadow-x: 0px;
+  --shadow-y: 4px;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  font-family: var(--font-sans);
+  letter-spacing: var(--letter-spacing);
+  background: var(--background);
+  color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Utilities mapped to CSS variables */
+.text-foreground { color: var(--foreground); }
+.text-primary { color: var(--primary); }
+.text-secondary { color: var(--secondary-foreground); }
+.text-muted-foreground { color: var(--muted-foreground); }
+.text-accent { color: var(--accent); }
+.text-destructive { color: var(--destructive); }
+
+.bg-background { background-color: var(--background); }
+.bg-card { background-color: var(--card); }
+.bg-popover { background-color: var(--popover); }
+.bg-primary { background-color: var(--primary); }
+.bg-secondary { background-color: var(--secondary); }
+.bg-accent { background-color: var(--accent); }
+.bg-muted { background-color: var(--muted); }
+.bg-sidebar { background-color: var(--sidebar); }
+
+.border-border { border-color: var(--border); }
+.ring-primary { box-shadow: 0 0 0 2px var(--ring); }
+
+.rounded-theme { border-radius: var(--radius); }
+.p-theme { padding: var(--spacing); }
+.shadow-theme { box-shadow: var(--shadow-x) var(--shadow-y) var(--shadow-blur) var(--shadow-spread) hsl(var(--shadow-color) / var(--shadow-opacity)); }
 
 /* n8n-inspired React Flow styling with dotted green connections */
 /* React Flow drag handle styles */
@@ -20,59 +119,69 @@ body {
   cursor: grabbing;
 }
 
-/* n8n-style dotted cyan edges */
+/* Enhanced edges using accent color */
 .react-flow__edge-path {
-  stroke: #4de8e8 !important;
-  stroke-width: 2px !important;
+  stroke: #1da1f2 !important;
+  stroke-width: 3px !important;
   stroke-dasharray: 8, 4 !important;
-  filter: drop-shadow(0 0 4px rgba(77, 232, 232, 0.3)) !important;
+  filter: drop-shadow(0 0 8px rgba(29, 161, 242, 0.5)) !important;
+  transition: all 0.2s ease !important;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: #1c9cf0 !important;
+  stroke-width: 3.5px !important;
+  filter: drop-shadow(0 0 10px rgba(28, 156, 240, 0.7)) !important;
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: #4de8e8 !important;
-  stroke-width: 3px !important;
-  filter: drop-shadow(0 0 8px rgba(77, 232, 232, 0.5)) !important;
+  stroke: #1c9cf0 !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 12px rgba(28, 156, 240, 0.8)) !important;
 }
 
 /* Connection line styling */
 .react-flow__connectionline {
-  stroke: #4de8e8 !important;
-  stroke-width: 2px !important;
+  stroke: #1da1f2 !important;
+  stroke-width: 3px !important;
   stroke-dasharray: 8, 4 !important;
+  filter: drop-shadow(0 0 6px rgba(29, 161, 242, 0.4)) !important;
 }
 
-/* React Flow controls styling for dark theme */
+/* Enhanced React Flow controls styling */
 .react-flow__controls {
-  background: #0c2025 !important;
-  border: 2px solid #4de8e8 !important;
-  border-radius: 12px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(77, 232, 232, 0.3) !important;
+  background: var(--card) !important;
+  border: 2px solid #1da1f2 !important;
+  border-radius: calc(var(--radius) * 3) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(29, 161, 242, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
 }
 .react-flow__controls button {
-  color: #4de8e8 !important;
-  fill: #4de8e8 !important;
-  border-bottom: 1px solid #4de8e8 !important;
+  color: #1da1f2 !important;
+  fill: #1da1f2 !important;
+  border-bottom: 1px solid var(--border) !important;
   transition: all 0.2s ease !important;
   background: transparent !important;
 }
 .react-flow__controls button:hover {
-  background-color: #4de8e8 !important;
-  color: #0a1a20 !important;
-  fill: #0a1a20 !important;
+  background-color: #1da1f2 !important;
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  transform: scale(1.05) !important;
 }
 .react-flow__controls button:last-child {
   border-bottom: none !important;
 }
 
-/* React Flow background pattern */
+/* Enhanced React Flow background pattern */
 .react-flow__background {
-  background-color: #000000 !important;
+  background-color: var(--background) !important;
 }
 
 .react-flow__background .react-flow__background-pattern {
-  fill: rgba(77, 232, 232, 0.15) !important;
-  stroke: rgba(77, 232, 232, 0.2) !important;
-  stroke-width: 0.5 !important;
+  fill: rgba(29, 161, 242, 0.08) !important;
+  stroke: rgba(29, 161, 242, 0.15) !important;
+  stroke-width: 0.8 !important;
 }
 
 /* Hide React Flow attribution */
@@ -80,29 +189,29 @@ body {
   display: none;
 }
 
-/* Custom scrollbar for sidebar - dark theme */
+/* Enhanced scrollbar for sidebar */
 .overflow-y-auto::-webkit-scrollbar {
   width: 6px;
 }
 .overflow-y-auto::-webkit-scrollbar-track {
-  background: #0f3039;
+  background: var(--muted);
 }
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #4de8e8;
+  background: #1da1f2;
   border-radius: 3px;
 }
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #36a5a5;
+  background: #1c9cf0;
 }
 
-/* n8n-style node animations */
+/* Enhanced node animations */
 @keyframes nodeGlow {
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(77, 232, 232, 0.2);
+    box-shadow: 0 0 20px rgba(29, 161, 242, 0.3);
   }
   50% {
-    box-shadow: 0 0 30px rgba(77, 232, 232, 0.4);
+    box-shadow: 0 0 30px rgba(29, 161, 242, 0.5);
   }
 }
 
@@ -114,4 +223,5 @@ body {
 .react-flow__node:hover {
   transform: translateY(-2px);
   transition: all 0.2s ease;
+  box-shadow: 0 8px 25px rgba(29, 161, 242, 0.15);
 }

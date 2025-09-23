@@ -5,6 +5,7 @@ import Link from "next/link";
 import { trpc } from "../../utils/trpc";
 import { CredentialType } from "../../types/credential";
 import { Plus, Settings, Trash2, TestTube, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 
 const CREDENTIAL_TYPES = {
   [CredentialType.TELEGRAM_BOT]: {
@@ -168,7 +169,6 @@ export default function CredentialsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
@@ -188,7 +188,6 @@ export default function CredentialsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
@@ -207,7 +206,6 @@ export default function CredentialsPage() {
           </div>
         </div>
 
-        {/* Credentials Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {credentials?.map((credential: any) => {
             const typeInfo = getCredentialTypeInfo(credential.type);
@@ -218,7 +216,6 @@ export default function CredentialsPage() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center">
-                    <span className="text-2xl mr-3">{typeInfo.icon}</span>
                     <div>
                       <h3 className="text-lg font-medium text-gray-900">{credential.name}</h3>
                       <p className="text-sm text-gray-500">{typeInfo.name}</p>
@@ -256,7 +253,6 @@ export default function CredentialsPage() {
 
         {credentials?.length === 0 && (
           <div className="text-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">🔐</div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No credentials yet</h3>
             <p className="text-gray-500 mb-6">Get started by adding your first credential</p>
             <button
@@ -270,9 +266,8 @@ export default function CredentialsPage() {
         )}
       </div>
 
-      {/* Create/Edit Modal */}
       {(showCreateModal || editingCredential) && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div className="fixed inset-0 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex items-center justify-between mb-4">
@@ -291,8 +286,7 @@ export default function CredentialsPage() {
                 </button>
               </div>
 
-              <div className="space-y-4">
-                {/* Credential Type Selection */}
+              <div className="space-y-4 text-black">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Credential Type
@@ -308,13 +302,12 @@ export default function CredentialsPage() {
                   >
                     {Object.entries(CREDENTIAL_TYPES).map(([type, info]) => (
                       <option key={type} value={type}>
-                        {info.icon} {info.name}
+                        {info.name}
                       </option>
                     ))}
                   </select>
                 </div>
 
-                {/* Credential Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Name
@@ -328,7 +321,6 @@ export default function CredentialsPage() {
                   />
                 </div>
 
-                {/* Dynamic Fields */}
                 {getCredentialTypeInfo(selectedType).fields.map((field) => (
                   <div key={field.key}>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -358,27 +350,7 @@ export default function CredentialsPage() {
                     </div>
                   </div>
                 ))}
-
-                {/* Action Buttons */}
-                <div className="flex items-center justify-between pt-4">
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={handleTestConnectivity}
-                      disabled={testConnectivity.isPending}
-                      className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      <TestTube className="h-4 w-4 mr-2" />
-                      {testConnectivity.isPending ? "Testing..." : "Test Connection"}
-                    </button>
-                    <button
-                      onClick={handleTest}
-                      disabled={testCredential.isPending}
-                      className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      <TestTube className="h-4 w-4 mr-2" />
-                      {testCredential.isPending ? "Testing..." : "Test Credential"}
-                    </button>
-                  </div>
+                <div className="flex w-full items-center justify-between pt-4">
                   <div className="flex space-x-3">
                     <button
                       onClick={() => {

@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import {
   BaseEdge,
   getBezierPath,
@@ -22,7 +23,7 @@ export default function InteractiveEdge(props: EdgeProps) {
     sourcePosition,
     targetPosition,
     markerEnd,
-    sourceHandle,
+    data: sourceHandle,
   } = props;
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -38,7 +39,7 @@ export default function InteractiveEdge(props: EdgeProps) {
 
   const showControls = () => {
     if (hideTimerRef.current) {
-      window.clearTimeout(hideTimerRef.current);
+      clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
     }
     setHovered(true);
@@ -46,12 +47,12 @@ export default function InteractiveEdge(props: EdgeProps) {
 
   const scheduleHideControls = () => {
     if (hideTimerRef.current) {
-      window.clearTimeout(hideTimerRef.current);
+      clearTimeout(hideTimerRef.current);
     }
-    hideTimerRef.current = window.setTimeout(() => {
+    hideTimerRef.current = setTimeout(() => {
       setHovered(false);
       hideTimerRef.current = null;
-    }, 120);
+    }, 120) as unknown as number;
   };
 
   const removeEdge = (e?: React.MouseEvent) => {
@@ -71,6 +72,9 @@ export default function InteractiveEdge(props: EdgeProps) {
     }
   };
 
+  // Interpret edge data as a conditional handle id if it's a string
+  const handleId = typeof sourceHandle === "string" ? (sourceHandle as string) : undefined;
+
   return (
     <>
       <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} />
@@ -84,8 +88,7 @@ export default function InteractiveEdge(props: EdgeProps) {
         onMouseLeave={scheduleHideControls}
       />
       <EdgeLabelRenderer>
-        {/* Conditional branch label at the end of the edge (near target) */}
-        {sourceHandle && (sourceHandle === "true" || sourceHandle === "false") && (
+        {handleId && (handleId === "true" || handleId === "false") && (
           <div
             style={{
               position: "absolute",
@@ -95,12 +98,12 @@ export default function InteractiveEdge(props: EdgeProps) {
           >
             <span
               className={
-                sourceHandle === "true"
-                  ? "text-[9px] px-1.5 py-0.5 rounded bg-[rgba(34,197,94,0.15)] text-green-300 border border-green-900/40"
-                  : "text-[9px] px-1.5 py-0.5 rounded bg-[rgba(239,68,68,0.12)] text-red-300 border border-red-900/40"
+                handleId === "true"
+                  ? "text-[9px] px-1.5 py-0.5 rounded bg-[rgba(16,185,129,0.12)] text-emerald-300 border border-emerald-900/40"
+                  : "text-[9px] px-1.5 py-0.5 rounded bg-[rgba(244,63,94,0.12)] text-rose-300 border border-rose-900/40"
               }
             >
-              {sourceHandle === "true" ? "True" : "False"}
+              {handleId === "true" ? "True" : "False"}
             </span>
           </div>
         )}
@@ -119,15 +122,15 @@ export default function InteractiveEdge(props: EdgeProps) {
             <button
               onClick={selectEdgeForInsert}
               title="Insert node here"
-              className="w-6 h-6 flex items-center justify-center rounded-sm cursor-pointer  hover:text-[#4de8e8]/50 bg-[#164955] hover:border hover:border-[#4de8e8]/50"
+              className="w-6 h-6 flex items-center justify-center rounded-sm cursor-pointer hover:text-[#1c9cf0] bg-[#061622] hover:border hover:border-[#1da1f2]"
             >
               <IoIosAdd className=" w-3 h-3  " />
             </button>
             <button
               onClick={removeEdge}
-              className="w-6 h-6 flex items-center justify-center rounded-sm hover:text-[#4de8e8]/50  cursor-pointer bg-[#164955] hover:border hover:border-[#4de8e8]/50"
+              className="w-6 h-6 flex items-center justify-center rounded-sm hover:text-[#1c9cf0] cursor-pointer bg-[#061622] hover:border hover:border-[#1da1f2]"
             >
-              <FaRegTrashAlt className="text w-3 h-3" />
+              <FaRegTrashAlt className="w-3 h-3" />
             </button>
           </div>
         </div>

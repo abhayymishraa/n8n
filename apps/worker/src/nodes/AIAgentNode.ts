@@ -10,28 +10,78 @@ export const AIAgentNode: NodeImplementation = {
       temperature = 0.7,
       maxTokens = 2000,
       systemPrompt,
-      task,
+      task: rawTask,
+      prompt,
+      credentialId,
+      apiKey,
       useTools = true,
       analyzeData = false,
       generateReport = false,
       reportType = "summary"
     } = config;
 
-    if (!task && !analyzeData && !generateReport) {
-      throw new Error("AI Agent requires either 'task', 'analyzeData', or 'generateReport' to be specified");
-    }
+    const task = (rawTask || prompt) as string | undefined;
+
+    const shouldRunGeneric = !task && !analyzeData && !generateReport;
 
     try {
-      // Create agent configuration
+      // If provider is gemini, call Gemini HTTP API directly without adding extra prompt
+      if ((provider as string) === 'gemini') {
+        // Resolve API key: credentialId > apiKey field
+        let geminiKey = apiKey as string | undefined;
+        if (!geminiKey && credentialId) {
+          const cred = await context.getCredential(credentialId);
+          geminiKey = cred?.data?.apiKey as string | undefined;
+        }
+        if (!geminiKey) {
+          throw new Error('Gemini API key is required (set via credentialId or apiKey)');
+        }
+        const modelName = model || 'gemini-2.0-flash';
+        const userText = task || '';
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-goog-api-key': geminiKey,
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [ { text: userText } ]
+              }
+            ]
+          })
+        });
+        if (!resp.ok) {
+          const txt = await resp.text();
+          throw new Error(`Gemini HTTP error: ${resp.status} ${txt}`);
+        }
+        const data = await resp.json();
+        const outputText = data?.candidates?.[0]?.content?.parts?.[0]?.text || JSON.stringify(data);
+        const result: any = {
+          task: userText || 'generic',
+          output: outputText,
+          metadata: {
+            provider: 'gemini',
+            model: modelName,
+            temperature,
+            maxTokens,
+            executionTime: Date.now(),
+            nodeId: context.nodeId
+          }
+        };
+        return result;
+      }
+
+      // Otherwise use SimpleAIAgent (OpenAI default)
       const agentConfig: SimpleAgentConfig = {
-        provider: provider as "openai" | "gemini",
-        model,
+        provider: 'openai',
+        model: model || 'gpt-4o-mini',
         temperature,
         maxTokens,
         systemPrompt
       };
 
-      // Create agent context
       const agentContext = {
         prisma: context.prisma,
         executionId: context.executionId,
@@ -39,20 +89,22 @@ export const AIAgentNode: NodeImplementation = {
         nodeId: context.nodeId,
         fullDataPacket: context.fullDataPacket
       };
-
-      // Create the AI agent
       const agent = await SimpleAIAgent.createAgent(agentConfig, agentContext);
 
       let result: any = {};
-
-      // Execute based on the specified action
       if (task) {
-        // Execute a specific task
         const taskResult = await agent.execute(task);
         result = {
           task,
           output: taskResult.output,
           usage: taskResult.usage
+        };
+      } else if (shouldRunGeneric) {
+        const generic = await agent.execute("Process the provided input and return a helpful response.");
+        result = {
+          task: "generic",
+          output: generic.output,
+          usage: generic.usage
         };
       } else if (analyzeData) {
         // Analyze workflow data
@@ -63,7 +115,6 @@ export const AIAgentNode: NodeImplementation = {
           timestamp: new Date().toISOString()
         };
       } else if (generateReport) {
-        // Generate a report
         const reportResult = await agent.execute(`generate ${reportType} report based on the provided data`);
         result = {
           report: reportResult.output,
@@ -73,7 +124,6 @@ export const AIAgentNode: NodeImplementation = {
         };
       }
 
-      // Add metadata
       result.metadata = {
         provider,
         model: model || (provider === "openai" ? "gpt-4" : "gemini-pro"),
@@ -85,7 +135,7 @@ export const AIAgentNode: NodeImplementation = {
 
       return result;
 
-    } catch (error) {
+    } catch (error) { 
       console.error("AI Agent node execution failed:", error);
       throw new Error(`AI Agent execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

@@ -24,17 +24,17 @@ function CredentialSelector({ prop, currentValue, onValueChange, isEmpty }: Cred
     allowedTypes.length === 0 || allowedTypes.includes(cred.type as CredentialType)
   ) || [];
 
-  const inputClassName = `w-full px-3 py-2 bg-[rgba(22,73,85,0.3)] border ${isEmpty ? 'border-red-500' : 'border-[rgba(22,73,85,0.5)]'} rounded-lg text-white placeholder-[#36a5a5] focus:outline-none focus:border-[#4de8e8] focus:ring-1 focus:ring-[#4de8e8]`;
+  const inputClassName = `w-full px-3 py-2 bg-[var(--input)] border ${isEmpty ? 'border-red-500' : 'border-[var(--border)]'} rounded-lg text-[var(--foreground)] placeholder-[var(--muted-foreground)] focus:outline-none focus:border-[#1da1f2] focus:ring-1 focus:ring-[#1da1f2]`;
 
   if (isLoading) {
     return (
       <div className="mb-6">
-        <label className="block text-sm font-medium text-[#4de8e8] mb-2">
+        <label className="block text-sm font-medium text-[#1da1f2] mb-2">
           {prop.displayName}
           {prop.required && <span className="text-red-400 ml-1">*</span>}
         </label>
-        <div className="p-3 bg-[rgba(22,73,85,0.3)] border border-[rgba(22,73,85,0.5)] rounded-lg">
-          <p className="text-sm text-[#36a5a5]">Loading credentials...</p>
+        <div className="p-3 bg-[var(--input)] border border-[var(--border)] rounded-lg">
+          <p className="text-sm text-[var(--muted-foreground)]">Loading credentials...</p>
         </div>
       </div>
     );
@@ -43,17 +43,17 @@ function CredentialSelector({ prop, currentValue, onValueChange, isEmpty }: Cred
   if (filteredCredentials.length === 0) {
     return (
       <div className="mb-6">
-        <label className="block text-sm font-medium text-[#4de8e8] mb-2">
+        <label className="block text-sm font-medium text-[#1da1f2] mb-2">
           {prop.displayName}
           {prop.required && <span className="text-red-400 ml-1">*</span>}
         </label>
-        <div className="p-3 bg-[rgba(22,73,85,0.3)] border border-[rgba(22,73,85,0.5)] rounded-lg">
-          <p className="text-sm text-[#36a5a5] mb-2">No credentials available for this node type.</p>
+        <div className="p-3 bg-[var(--input)] border border-[var(--border)] rounded-lg">
+          <p className="text-sm text-[var(--muted-foreground)] mb-2">No credentials available for this node type.</p>
           <a 
             href="/credentials" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-[#4de8e8] hover:underline text-sm"
+            className="text-[#1da1f2] hover:underline text-sm"
           >
             Create credentials →
           </a>
@@ -67,7 +67,7 @@ function CredentialSelector({ prop, currentValue, onValueChange, isEmpty }: Cred
 
   return (
     <div className="mb-6">
-      <label className="block text-sm font-medium text-[#4de8e8] mb-2">
+      <label className="block text-sm font-medium text-[#1da1f2] mb-2">
         {prop.displayName}
         {prop.required && <span className="text-red-400 ml-1">*</span>}
       </label>
@@ -91,7 +91,7 @@ function CredentialSelector({ prop, currentValue, onValueChange, isEmpty }: Cred
           href="/credentials" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="text-[#4de8e8] hover:underline text-xs"
+          className="text-[#1da1f2] hover:underline text-xs"
         >
           Manage credentials →
         </a>
@@ -106,7 +106,9 @@ interface PropertiesModalProps {
   onClose: () => void;
   onNodeDataChange: (_nodeId: string, _newData: any) => void;
   workflowData?: any;
-  initialTab?: 'properties' | 'output';
+  initialTab?: 'properties' | 'output' | 'run';
+  graphNodes?: any[];
+  graphEdges?: any[];
 }
 
 export default function PropertiesModal({ 
@@ -116,9 +118,22 @@ export default function PropertiesModal({
   onNodeDataChange: _onNodeDataChange,
   workflowData,
   initialTab = 'properties',
+  graphNodes = [],
+  graphEdges = [],
 }: PropertiesModalProps) {
   const [localInputs, setLocalInputs] = useState<Record<string, any>>({});
-  const [activeTab, setActiveTab] = useState<'properties' | 'output'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'properties' | 'output' | 'run'>(initialTab);
+
+  // State for Run tab
+  const [runJson, setRunJson] = useState<string>('{}');
+  const [runLoading, setRunLoading] = useState<boolean>(false);
+  const [runError, setRunError] = useState<string | null>(null);
+  const [runExecutionId, setRunExecutionId] = useState<string | null>(null);
+  const executeManualMutation = trpc.workflow.executeManual.useMutation();
+  const getExecutionDetails = trpc.workflow.getExecutionDetails.useQuery(
+    { executionId: runExecutionId as string },
+    { enabled: !!runExecutionId }
+  );
 
   // Keep tab in sync when modal opens with a different initialTab
   useEffect(() => {
@@ -139,6 +154,14 @@ export default function PropertiesModal({
   const nodeExecutionResult = (latestExecutionDetails?.executionResults || []).find(
     (r: any) => r?.nodeInstance?.nodeId === selectedNode?.id
   );
+
+  // Upstream nodes of selected node (direct inputs)
+  const upstreamNodes = (() => {
+    if (!selectedNode || !Array.isArray(graphEdges) || !Array.isArray(graphNodes)) return [] as any[];
+    const incoming = graphEdges.filter((e: any) => e.target === selectedNode.id);
+    const sourceIds = new Set(incoming.map((e: any) => e.source));
+    return graphNodes.filter((n: any) => sourceIds.has(n.id));
+  })();
 
   // Initialize local inputs when node changes
   useEffect(() => {
@@ -203,6 +226,39 @@ export default function PropertiesModal({
     onClose();
   };
 
+  const handleRun = () => {
+    if (!workflowData?.id) return;
+    setRunLoading(true);
+    setRunError(null);
+    let payload: any = undefined;
+    try {
+      const trimmed = (runJson || '').trim();
+      payload = trimmed ? JSON.parse(trimmed) : undefined;
+    } catch (e: any) {
+      setRunLoading(false);
+      setRunError('Invalid JSON input');
+      return;
+    }
+    executeManualMutation.mutate(
+      { workflowid: workflowData.id as string, triggerData: payload },
+      {
+        onSuccess: (data: any) => {
+          setRunLoading(false);
+          setRunExecutionId(data?.executionId as string);
+        },
+        onError: (err: any) => {
+          setRunLoading(false);
+          setRunError(err?.message || 'Failed to execute');
+        },
+      }
+    );
+  };
+
+  // Result for this node from the ad-hoc run
+  const runNodeResult = (getExecutionDetails?.data?.executionResults || []).find(
+    (r: any) => r?.nodeInstance?.nodeId === selectedNode?.id
+  );
+
   const renderProperty = (prop: NodeProperty) => {
     // Handle the special case for webhook URL display
     if (prop.type === 'notice' && selectedNode?.data.type === 'webhook') {
@@ -220,12 +276,12 @@ export default function PropertiesModal({
 
       return (
         <div key={prop.name} className="mb-6">
-          <label className="block text-sm font-medium text-[#4de8e8] mb-2">
+          <label className="block text-sm font-medium text-[#1da1f2] mb-2">
             {prop.displayName}
           </label>
-          <div className="p-3 bg-[rgba(10,20,22,0.8)] border border-[rgba(22,73,85,0.5)] rounded-lg space-y-3">
+          <div className="p-3 bg-[var(--muted)] border border-[var(--border)] rounded-lg space-y-3">
             <div>
-              <p className="text-sm text-white break-all font-mono">{fullUrl}</p>
+              <p className="text-sm text-[var(--foreground)] break-all font-mono">{fullUrl}</p>
               <div className="flex items-center justify-between mt-2">
                 <span className={`text-xs px-2 py-1 rounded-full ${
                   isActive 
@@ -240,25 +296,25 @@ export default function PropertiesModal({
                       (window as any).navigator.clipboard.writeText(fullUrl);
                     }
                   }}
-                  className="text-xs text-[#4de8e8] hover:underline transition-colors flex items-center gap-1"
+                  className="text-xs text-[#1da1f2] hover:underline transition-colors flex items-center gap-1"
                 >
                   <FaCopy /> Copy URL
                 </button>
               </div>
             </div>
             
-            <div className="border-t border-[rgba(22,73,85,0.3)] pt-3">
-              <p className="text-xs text-[#36a5a5] mb-2">📝 <strong>How to use this webhook:</strong></p>
-              <div className="text-xs text-[#36a5a5] space-y-1">
+            <div className="border-t border-[var(--border)] pt-3">
+              <p className="text-xs text-[var(--muted-foreground)] mb-2">📝 <strong>How to use this webhook:</strong></p>
+              <div className="text-xs text-[var(--muted-foreground)] space-y-1">
                 <p>• Send HTTP requests to the URL above</p>
                 <p>• Method: {localInputs['httpMethod'] || 'POST'}</p>
                 <p>• Content-Type: application/json (recommended)</p>
                 <p>• The request body will be available as trigger data</p>
               </div>
               
-              <div className="mt-2 p-2 bg-[rgba(5,15,18,0.8)] border border-[rgba(22,73,85,0.3)] rounded text-xs">
-                <p className="text-[#4de8e8] mb-1">Example cURL command:</p>
-                <pre className="text-[#36a5a5] font-mono text-[10px] whitespace-pre-wrap break-all">
+              <div className="mt-2 p-2 bg-[var(--background)] border border-[var(--border)] rounded text-xs">
+                <p className="text-[#1da1f2] mb-1">Example cURL command:</p>
+                <pre className="text-[var(--muted-foreground)] font-mono text-[10px] whitespace-pre-wrap break-all">
 {`curl -X ${localInputs['httpMethod'] || 'POST'} "${fullUrl}" \\
   -H "Content-Type: application/json" \\
   -d '{"message": "Hello from webhook!"}'`}
@@ -272,13 +328,13 @@ export default function PropertiesModal({
 
     const currentValue = localInputs[prop.name] ?? prop.default ?? '';
     const isEmpty = Boolean(prop.required) && (!currentValue || currentValue === '');
-    const inputClassName = `w-full px-3 py-2 bg-[rgba(22,73,85,0.3)] border ${isEmpty ? 'border-red-500' : 'border-[rgba(22,73,85,0.5)]'} rounded-lg text-white placeholder-[#36a5a5] focus:outline-none focus:border-[#4de8e8] focus:ring-1 focus:ring-[#4de8e8]`;
+    const inputClassName = `w-full px-3 py-2 bg-[var(--input)] border ${isEmpty ? 'border-red-500' : 'border-[var(--border)]'} rounded-lg text-[var(--foreground)] placeholder-[var(--muted-foreground)] focus:outline-none focus:border-[#1da1f2] focus:ring-1 focus:ring-[#1da1f2]`;
     
     switch (prop.type) {
       case 'string':
         return (
           <div key={prop.name} className="mb-6">
-            <label className="block text-sm font-medium text-[#4de8e8] mb-2">
+            <label className="block text-sm font-medium text-[#1da1f2] mb-2">
               {prop.displayName}
               {prop.required && <span className="text-red-400 ml-1">*</span>}
             </label>
@@ -298,7 +354,7 @@ export default function PropertiesModal({
       case 'number':
         return (
           <div key={prop.name} className="mb-6">
-            <label className="block text-sm font-medium text-[#4de8e8] mb-2">
+            <label className="block text-sm font-medium text-[#1da1f2] mb-2">
               {prop.displayName}
               {prop.required && <span className="text-red-400 ml-1">*</span>}
             </label>
@@ -323,9 +379,9 @@ export default function PropertiesModal({
                 type="checkbox"
                 checked={currentValue}
                 onChange={(e) => handleInputChange(prop.name, e.target.checked)}
-                className="w-4 h-4 text-[#4de8e8] bg-[rgba(22,73,85,0.3)] border-[rgba(22,73,85,0.5)] rounded focus:ring-[#4de8e8] focus:ring-2"
+                className="w-4 h-4 text-[#1da1f2] bg-[var(--input)] border-[var(--border)] rounded focus:ring-[#1da1f2] focus:ring-2"
               />
-              <span className="text-sm font-medium text-[#4de8e8]">
+              <span className="text-sm font-medium text-[#1da1f2]">
                 {prop.displayName}
                 {prop.required && <span className="text-red-400 ml-1">*</span>}
               </span>
@@ -336,7 +392,7 @@ export default function PropertiesModal({
       case 'options':
         return (
           <div key={prop.name} className="mb-6">
-            <label className="block text-sm font-medium text-[#4de8e8] mb-2">
+            <label className="block text-sm font-medium text-[#1da1f2] mb-2">
               {prop.displayName}
               {prop.required && <span className="text-red-400 ml-1">*</span>}
             </label>
@@ -361,11 +417,11 @@ export default function PropertiesModal({
       case 'notice':
         return (
           <div key={prop.name} className="mb-6">
-            <label className="block text-sm font-medium text-[#4de8e8] mb-2">
+            <label className="block text-sm font-medium text-[#1da1f2] mb-2">
               {prop.displayName}
             </label>
-            <div className="p-3 bg-[rgba(10,20,22,0.8)] border border-[rgba(22,73,85,0.5)] rounded-lg">
-              <p className="text-sm text-[#36a5a5] break-all">{prop.default}</p>
+            <div className="p-3 bg-[var(--muted)] border border-[var(--border)] rounded-lg">
+              <p className="text-sm text-[var(--muted-foreground)] break-all">{prop.default}</p>
             </div>
           </div>
         );
@@ -382,7 +438,7 @@ export default function PropertiesModal({
       default:
         return (
           <div key={prop.name} className="mb-6">
-            <label className="block text-sm font-medium text-[#4de8e8] mb-2">
+            <label className="block text-sm font-medium text-[#1da1f2] mb-2">
               {prop.displayName}
               {prop.required && <span className="text-red-400 ml-1">*</span>}
             </label>
@@ -411,16 +467,16 @@ export default function PropertiesModal({
       
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-[rgba(12,32,37,0.95)] backdrop-blur-md border border-[rgba(22,73,85,0.5)] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.4)] w-full max-w-lg max-h-[80vh] overflow-hidden">
+        <div className="bg-[var(--card)] text-foreground border border-border rounded-xl shadow-theme w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-[rgba(22,73,85,0.5)]">
+          <div className="flex items-center justify-between p-6 border-b border-border">
             <div>
-              <h2 className="text-xl font-semibold text-[#4de8e8]">{nodeDef.displayName}</h2>
-              <p className="text-sm text-[#36a5a5] mt-1">{nodeDef.description}</p>
+              <h2 className="text-xl font-semibold text-primary">{nodeDef.displayName}</h2>
+              <p className="text-sm text-[var(--muted-foreground)] mt-1">{nodeDef.description}</p>
             </div>
             <button
               onClick={handleCancel}
-              className="p-2 text-[#36a5a5] hover:text-[#4de8e8] hover:bg-[rgba(255,255,255,0.06)] rounded-lg transition-colors"
+              className="p-2 text-[var(--muted-foreground)] hover:text-primary hover:bg-[rgba(255,255,255,0.06)] rounded-theme transition-colors"
             >
               <IoClose size={20} />
             </button>
@@ -430,25 +486,31 @@ export default function PropertiesModal({
           <div className="px-6 pt-4">
             <div className="flex gap-2">
               <button
-                className={`px-3 py-1.5 text-sm rounded-md border ${activeTab === 'properties' ? 'border-[#4de8e8] text-[#4de8e8] bg-[rgba(77,232,232,0.1)]' : 'border-[rgba(22,73,85,0.5)] text-[#36a5a5] hover:text-[#4de8e8]'}`}
+                className={`px-3 py-1.5 text-sm rounded-md border ${activeTab === 'properties' ? 'border-[#1da1f2] text-[#1da1f2] bg-[#1da1f2]/10' : 'border-[var(--border)] text-[var(--muted-foreground)] hover:text-[#1da1f2]'}`}
                 onClick={() => setActiveTab('properties')}
               >
                 Properties
               </button>
               <button
-                className={`px-3 py-1.5 text-sm rounded-md border ${activeTab === 'output' ? 'border-[#4de8e8] text-[#4de8e8] bg-[rgba(77,232,232,0.1)]' : 'border-[rgba(22,73,85,0.5)] text-[#36a5a5] hover:text-[#4de8e8]'}`}
+                className={`px-3 py-1.5 text-sm rounded-md border ${activeTab === 'output' ? 'border-[#1da1f2] text-[#1da1f2] bg-[#1da1f2]/10' : 'border-[var(--border)] text-[var(--muted-foreground)] hover:text-[#1da1f2]'}`}
                 onClick={() => setActiveTab('output')}
               >
                 Output
+              </button>
+              <button
+                className={`px-3 py-1.5 text-sm rounded-md border ${activeTab === 'run' ? 'border-[#1da1f2] text-[#1da1f2] bg-[#1da1f2]/10' : 'border-[var(--border)] text-[var(--muted-foreground)] hover:text-[#1da1f2]'}`}
+                onClick={() => setActiveTab('run')}
+              >
+                Run
               </button>
             </div>
           </div>
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[60vh]">
+          <div className="p-6 overflow-y-auto flex-1 min-h-0">
             {activeTab === 'properties' && (
               !nodeDef.properties || nodeDef.properties.length === 0 ? (
-                <p className="text-[#36a5a5] text-center py-8">
+                <p className="text-[var(--muted-foreground)] text-center py-8">
                   This node has no configurable properties.
                 </p>
               ) : (
@@ -456,29 +518,67 @@ export default function PropertiesModal({
                   {nodeDef.properties.map(renderProperty)}
 
                   {/* Data access help */}
-                  <div className="mt-6 p-4 rounded-lg bg-[rgba(10,20,22,0.8)] border border-[rgba(22,73,85,0.5)]">
-                    <h4 className="font-medium text-[#4de8e8] mb-2">How to reference data from other nodes</h4>
-                    <div className="space-y-2 text-xs text-[#36a5a5]">
+                  <div className="mt-6 p-4 rounded-lg bg-[var(--muted)] border border-[var(--border)]">
+                    <h4 className="font-medium text-[#1da1f2] mb-2">How to reference data from other nodes</h4>
+                    <div className="space-y-2 text-xs text-[var(--muted-foreground)]">
                       <p>
-                        Use templating with <span className="text-[#4de8e8] font-mono">{'{{ }}'}</span> to reference values from previous nodes.
+                        Use templating with <span className="text-[#1da1f2] font-mono">{'{{ }}'}</span> to reference values from previous nodes.
                       </p>
+                      <div className="mt-2">
+                        <p className="text-[11px] text-[var(--foreground)] mb-1">Upstream nodes connected to this node:</p>
+                        <ul className="text-[11px] space-y-1">
+                          {upstreamNodes.length === 0 && (
+                            <li className="text-[var(--muted-foreground)]">No upstream nodes connected.</li>
+                          )}
+                          {upstreamNodes.map((n: any) => (
+                            <li key={n.id} className="flex items-center justify-between gap-2">
+                              <span className="truncate">
+                                <span className="text-[#1da1f2]">{n.data?.label || n.id}</span>
+                                <span className="text-[var(--muted-foreground)]"> (id: {n.id})</span>
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => {
+                                    if (typeof window !== 'undefined' && (window as any).navigator?.clipboard) {
+                                      (window as any).navigator.clipboard.writeText(`{{ nodes["${n.data?.label || n.id}"].output }}`);
+                                    }
+                                  }}
+                                  className="px-2 py-0.5 text-xs border border-[var(--border)] rounded hover:bg-[var(--card)]"
+                                >
+                                  Copy by label
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (typeof window !== 'undefined' && (window as any).navigator?.clipboard) {
+                                      (window as any).navigator.clipboard.writeText(`{{ nodes["${n.id}"].output }}`);
+                                    }
+                                  }}
+                                  className="px-2 py-0.5 text-xs border border-[var(--border)] rounded hover:bg-[var(--card)]"
+                                >
+                                  Copy by id
+                                </button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                       <ul className="list-disc list-inside space-y-1">
                         <li>
-                          <span className="text-[#4de8e8]">Trigger data</span>: <span className="font-mono">{'{{ trigger.body.message }}'}</span>
+                          <span className="text-[#1da1f2]">Trigger data</span>: <span className="font-mono">{'{{ trigger.body.message }}'}</span>
                         </li>
                         <li>
-                          <span className="text-[#4de8e8]">Previous node output</span> (by label or id): <span className="font-mono">{'{{ nodes["Node Label"].output.key }}'}</span> or <span className="font-mono">{'{{ nodes["<node-id>"].output.key }}'}</span>
+                          <span className="text-[#1da1f2]">Previous node output</span> (by label or id): <span className="font-mono">{'{{ nodes["Node Label"].output.key }}'}</span> or <span className="font-mono">{'{{ nodes["<node-id>"].output.key }}'}</span>
                         </li>
                         <li>
-                          <span className="text-[#4de8e8]">Entire output</span>: <span className="font-mono">{'{{ nodes["Node Label"].output }}'}</span>
+                          <span className="text-[#1da1f2]">Entire output</span>: <span className="font-mono">{'{{ nodes["Node Label"].output }}'}</span>
                         </li>
                         <li>
-                          <span className="text-[#4de8e8]">AI/Agent nodes</span> often return <span className="font-mono">text</span> and <span className="font-mono">metadata</span>: <span className="font-mono">{'{{ nodes["AI"].output.text }}'}</span>
+                          <span className="text-[#1da1f2]">AI/Agent nodes</span> often return <span className="font-mono">text</span> and <span className="font-mono">metadata</span>: <span className="font-mono">{'{{ nodes["AI"].output.text }}'}</span>
                         </li>
                       </ul>
-                      <div className="mt-2 p-2 bg-[rgba(5,15,18,0.8)] border border-[rgba(22,73,85,0.3)] rounded">
-                        <p className="text-[#4de8e8] mb-1">Example:</p>
-                        <pre className="text-[11px] text-[#d1d5db] font-mono whitespace-pre-wrap">{"Send to {{ nodes[\"Summarize\"].output.text }}"}</pre>
+                      <div className="mt-2 p-2 bg-[var(--background)] border border-[var(--border)] rounded">
+                        <p className="text-[#1da1f2] mb-1">Example:</p>
+                        <pre className="text-[11px] text-[var(--foreground)] font-mono whitespace-pre-wrap">{"Send to {{ nodes[\"Summarize\"].output.text }}"}</pre>
                       </div>
                     </div>
                   </div>
@@ -489,17 +589,17 @@ export default function PropertiesModal({
             {activeTab === 'output' && (
               <div className="space-y-3">
                 {!latestExecutionId && (
-                  <div className="text-[#36a5a5] text-sm">No executions yet. Run the workflow to see outputs.</div>
+                  <div className="text-[var(--muted-foreground)] text-sm">No executions yet. Run the workflow to see outputs.</div>
                 )}
                 {latestExecutionId && !nodeExecutionResult && (
-                  <div className="text-[#36a5a5] text-sm">This node did not run in the latest execution.</div>
+                  <div className="text-[var(--muted-foreground)] text-sm">This node did not run in the latest execution.</div>
                 )}
                 {nodeExecutionResult && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="px-2 py-0.5 rounded-md border border-[rgba(22,73,85,0.5)] text-[#4de8e8]">{nodeExecutionResult.status}</span>
+                      <span className="px-2 py-0.5 rounded-md border border-[var(--border)] text-[#1da1f2]">{nodeExecutionResult.status}</span>
                       {typeof nodeExecutionResult.executionTime === 'number' && (
-                        <span className="text-[#36a5a5]">{nodeExecutionResult.executionTime}ms</span>
+                        <span className="text-[var(--muted-foreground)]">{nodeExecutionResult.executionTime}ms</span>
                       )}
                     </div>
                     {nodeExecutionResult.errorMessage && (
@@ -508,31 +608,79 @@ export default function PropertiesModal({
                       </div>
                     )}
                     <div>
-                      <h4 className="text-xs font-medium text-[#4de8e8] mb-1">Input</h4>
-                      <pre className="text-[11px] bg-[#0a1a20] text-[#d1d5db] p-2 rounded overflow-x-auto border border-[rgba(22,73,85,0.5)]">{JSON.stringify(nodeExecutionResult.inputData, null, 2)}</pre>
+                      <h4 className="text-xs font-medium text-[#1da1f2] mb-1">Input</h4>
+                      <pre className="text-[11px] bg-[var(--background)] text-[var(--foreground)] p-2 rounded overflow-x-auto border border-[var(--border)]">{JSON.stringify(nodeExecutionResult.inputData, null, 2)}</pre>
                     </div>
                     <div>
-                      <h4 className="text-xs font-medium text-[#4de8e8] mb-1">Output</h4>
-                      <pre className="text-[11px] bg-[#0a1a20] text-[#d1d5db] p-2 rounded overflow-x-auto border border-[rgba(22,73,85,0.5)]">{JSON.stringify(nodeExecutionResult.outputData, null, 2)}</pre>
+                      <h4 className="text-xs font-medium text-[#1da1f2] mb-1">Output</h4>
+                      <pre className="text-[11px] bg-[var(--background)] text-[var(--foreground)] p-2 rounded overflow-x-auto border border-[var(--border)]">{JSON.stringify(nodeExecutionResult.outputData, null, 2)}</pre>
                     </div>
-                    <div className="text-[10px] text-[#36a5a5]">From latest execution: {new Date(latestExecutionDetails?.startedAt || Date.now()).toLocaleString()}</div>
+                    <div className="text-[10px] text-[var(--muted-foreground)]">From latest execution: {new Date(latestExecutionDetails?.startedAt || Date.now()).toLocaleString()}</div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'run' && (
+              <div className="space-y-3">
+                <div>
+                  <h4 className="text-sm font-medium text-[#1da1f2] mb-2">Test run</h4>
+                  <p className="text-xs text-[var(--muted-foreground)] mb-2">Provide optional trigger JSON to execute the workflow and view this node's output.</p>
+                  <textarea
+                    value={runJson}
+                    onChange={(e) => setRunJson(e.target.value)}
+                    className="w-full h-28 px-3 py-2 bg-[var(--input)] border border-[var(--border)] rounded text-[var(--foreground)] font-mono text-[12px] focus:outline-none focus:border-[#1da1f2] focus:ring-1 focus:ring-[#1da1f2]"
+                  />
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      onClick={handleRun}
+                      disabled={runLoading}
+                      className="px-3 py-1.5 rounded-theme bg-[#1da1f2] text-[#ffffff] hover:bg-[#1c9cf0] disabled:opacity-60"
+                    >
+                      {runLoading ? 'Running…' : 'Run'}
+                    </button>
+                    {runError && <span className="text-xs text-red-400">{runError}</span>}
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <h4 className="text-sm font-medium text-[#1da1f2] mb-2">Result for this node</h4>
+                  {!runExecutionId && (
+                    <div className="text-xs text-[var(--muted-foreground)]">No test run yet.</div>
+                  )}
+                  {runExecutionId && getExecutionDetails.isLoading && (
+                    <div className="text-xs text-[var(--muted-foreground)]">Fetching results…</div>
+                  )}
+                  {runExecutionId && runNodeResult && (
+                    <div className="space-y-2">
+                      <div>
+                        <h5 className="text-[11px] text-[var(--muted-foreground)]">Input</h5>
+                        <pre className="text-[11px] bg-[var(--background)] text-[var(--foreground)] p-2 rounded overflow-x-auto border border-[var(--border)]">{JSON.stringify(runNodeResult.inputData, null, 2)}</pre>
+                      </div>
+                      <div>
+                        <h5 className="text-[11px] text-[var(--muted-foreground)]">Output</h5>
+                        <pre className="text-[11px] bg-[var(--background)] text-[var(--foreground)] p-2 rounded overflow-x-auto border border-[var(--border)]">{JSON.stringify(runNodeResult.outputData, null, 2)}</pre>
+                      </div>
+                    </div>
+                  )}
+                  {runExecutionId && !getExecutionDetails.isLoading && !runNodeResult && (
+                    <div className="text-xs text-[var(--muted-foreground)]">This node did not run in the latest test execution.</div>
+                  )}
+                </div>
               </div>
             )}
           </div>
           
           {/* Footer */}
-          <div className="flex items-center justify-end space-x-3 p-6 border-t border-[rgba(22,73,85,0.5)]">
+          <div className="flex items-center justify-end space-x-3 p-6 border-t border-[var(--border)]">
             <button
               onClick={handleCancel}
-              className="px-4 py-2 text-[#36a5a5] hover:text-white border border-[rgba(22,73,85,0.5)] hover:border-[rgba(255,255,255,0.2)] rounded-lg transition-colors"
+              className="px-4 py-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] border border-[var(--border)] hover:border-[rgba(255,255,255,0.2)] rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="flex items-center space-x-2 px-4 py-2 bg-[#4de8e8] text-[#0a1a20] hover:bg-[#36a5a5] rounded-lg transition-colors font-medium shadow-[0_4px_15px_rgba(77,232,232,0.25)]"
+              className="flex items-center space-x-2 px-4 py-2 bg-[#1da1f2] text-[#ffffff] hover:bg-[#1c9cf0] rounded-lg transition-colors font-medium shadow-[0_4px_15px_rgba(28,156,240,0.25)]"
             >
               <IoSave size={16} />
               <span>Save</span>

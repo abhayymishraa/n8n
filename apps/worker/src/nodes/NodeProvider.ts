@@ -6,9 +6,16 @@ import { TemplateEngine } from "../utils/TemplateEngine";
 
 const ManualTriggerNode: NodeImplementation = {
   execute: async (input: any, context: NodeExecutionContext) => {
-    // Manual trigger just passes through the trigger data
     console.log(`🎯 Manual trigger executed for workflow: ${context.workflowId}`);
     return input;
+  },
+};
+
+const WebhookTriggerNode: NodeImplementation = {
+  execute: async (input: any, context: NodeExecutionContext) => {
+    console.log(`🪝 Webhook trigger executed for workflow: ${context.workflowId}`);
+    const payload = context.fullDataPacket?.trigger?.output;
+    return payload !== undefined ? payload : input;
   },
 };
 
@@ -218,12 +225,10 @@ const DataTransformNode: NodeImplementation = {
           break;
 
         case 'remove':
-          // Remove a field
           delete result[field];
           break;
 
         case 'rename':
-          // Rename a field
           if (result.hasOwnProperty(field)) {
             result[newField] = result[field];
             delete result[field];
@@ -231,7 +236,6 @@ const DataTransformNode: NodeImplementation = {
           break;
 
         case 'math':
-          // Perform math operations
           const { operation, operand } = transformation;
           const currentValue = Number(result[field]) || 0;
           const operandValue = Number(operand) || 0;
@@ -253,7 +257,6 @@ const DataTransformNode: NodeImplementation = {
           break;
 
         case 'format':
-          // Format strings, dates, etc.
           const { formatType, formatString } = transformation;
           if (formatType === 'date' && result[field]) {
             const date = new Date(result[field]);
@@ -313,19 +316,16 @@ const EmailNode: NodeImplementation = {
       throw new Error("Resend API key not found in credentials");
     }
 
-    // Use enhanced template engine for better data access
     const templateContext = {
       input,
       fullDataPacket: context.fullDataPacket,
       trigger: context.fullDataPacket.trigger?.output || {}
     };
 
-    // Template the email content
     const templatedTo = TemplateEngine.process(to, templateContext);
     const templatedSubject = TemplateEngine.process(subject, templateContext);
     const templatedBody = TemplateEngine.process(body, templateContext);
 
-    // Send email via Resend
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -333,7 +333,7 @@ const EmailNode: NodeImplementation = {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'noreply@example.com', // This should be configured in the node
+        from: 'noreply@example.com',
         to: [templatedTo],
         subject: templatedSubject,
         [isHtml ? 'html' : 'text']: templatedBody,
@@ -359,6 +359,7 @@ const EmailNode: NodeImplementation = {
 
 const nodeRegistry: Record<string, NodeImplementation> = {
   'Manual': ManualTriggerNode,
+  'webhook': WebhookTriggerNode,
   'log': LogNode,
   'telegram-send-message': TelegramSendNode,
   'if': IFNODE,
@@ -368,15 +369,20 @@ const nodeRegistry: Record<string, NodeImplementation> = {
   'email': EmailNode,
   'ai-agent': AIAgentNode,
   'workflow-agent': WorkflowAgentNode,
+  'google-gemini': AIAgentNode,
+  'gemini': AIAgentNode,
 };
 
 export const getImplementation = (type: string): NodeImplementation => {
-  const implementation = nodeRegistry[type];
-  if (!implementation) {
-    console.error(`❌ No implementation found for node type: "${type}"`);
-    console.error("📋 Available node types:", Object.keys(nodeRegistry));
-    throw new Error(`No implementation found for node type: "${type}"`);
+  const original = type;
+
+  let impl = nodeRegistry[original];
+
+
+  if (!impl) {
+    console.error(`❌ No implementation found for node type: "${original}"`);
+    throw new Error(`No implementation found for node type: "${original}"`);
   }
-  console.log(`✅ Found implementation for node type: "${type}"`);
-  return implementation;
+  console.log(`✅ Found implementation for node type: "${original}"`);
+  return impl;
 };

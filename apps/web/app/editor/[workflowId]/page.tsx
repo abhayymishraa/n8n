@@ -396,32 +396,32 @@ function EditorCanvas({
   if (!workflowData) return <div>Workflow not found.</div>
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[linear-gradient(180deg,rgba(10,26,32,1)_0%,rgba(10,26,32,1)_100%)]">
-      <div className="bg-[rgba(12,32,37,0.85)] backdrop-blur-md border-b border-[rgba(22,73,85,0.5)] px-5 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.25)]">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-background">
+      <div className="bg-sidebar backdrop-blur-md border-b border-border px-5 py-3 shadow-theme">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => router.back()}
-              className="text-zinc-300 hover:text-white transition-colors duration-200 p-2 rounded-lg hover:bg-[rgba(255,255,255,0.06)] border border-transparent hover:border-[rgba(255,255,255,0.1)]"
+              className="text-[var(--muted-foreground)] hover:text-foreground transition-colors duration-200 p-2 rounded-theme hover:bg-[rgba(255,255,255,0.06)] border border-transparent hover:border-border"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-[#4de8e8] rounded-full animate-pulse"></div>
-              <h1 className="text-lg font-semibold text-[#4de8e8] tracking-tight">{workflowData.name}</h1>
+              <div className="w-2 h-2 bg-[var(--accent)] rounded-full animate-pulse"></div>
+              <h1 className="text-lg font-semibold text-primary tracking-tight">{workflowData.name}</h1>
             </div>
-            <div className="hidden md:flex items-center space-x-2 text-xs text-[#36a5a5]">
-              <span className="px-2 py-0.5 bg-[rgba(22,73,85,0.3)] border border-[rgba(22,73,85,0.5)] rounded-md text-[#4de8e8]">Inactive</span>
-              <span className="px-2 py-0.5 bg-[rgba(22,73,85,0.2)] border border-[rgba(22,73,85,0.3)] rounded-md text-[#36a5a5] text-[10px]">Press Del to delete selected</span>
+            <div className="hidden md:flex items-center space-x-2 text-xs text-[var(--muted-foreground)]">
+              <span className="px-2 py-0.5 bg-[rgba(22,73,85,0.3)] border border-border rounded-theme text-primary">Inactive</span>
+              <span className="px-2 py-0.5 bg-[rgba(22,73,85,0.2)] border border-border rounded-theme text-[var(--muted-foreground)] text-[10px]">Press Del to delete selected</span>
             </div>
           </div>
 
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setShowExecutionViewer(!showExecutionViewer)}
-              className="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-[#4de8e8] border border-[rgba(22,73,85,0.5)] hover:border-[#4de8e8]/60 hover:text-[#4de8e8] hover:bg-[rgba(77,232,232,0.12)] transition-all duration-200"
+              className="flex justify-center  py-1.5  gap-1 px-2 items-center  rounded-theme bg-primary text-[var(--primary-foreground)] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200 font-medium shadow-theme"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -431,7 +431,7 @@ function EditorCanvas({
 
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-[#4de8e8] border border-[rgba(22,73,85,0.5)] hover:border-[#4de8e8]/60 hover:text-[#4de8e8] hover:bg-[rgba(77,232,232,0.12)] transition-all duration-200"
+              className="flex justify-center  py-1.5 px-2 items-center  rounded-theme bg-primary text-[var(--primary-foreground)] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200 font-medium shadow-theme"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -442,7 +442,7 @@ function EditorCanvas({
             <button
               onClick={handleSave}
               disabled={isSaving || !!saveMutation.isPending}
-              className="px-4 py-1.5 rounded-lg bg-[#4de8e8] text-[#0a1a20] hover:bg-[#36a5a5] disabled:bg-[#0f3039]/60 disabled:text-[#36a5a5] disabled:cursor-not-allowed transition-colors duration-200 font-medium shadow-[0_6px_20px_rgba(77,232,232,0.25)]"
+              className="px-4 py-1.5 rounded-theme bg-primary text-[var(--primary-foreground)] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200 font-medium shadow-theme"
             >
               {isSaving || saveMutation.isPending ? "Saving..." : "Save"}
             </button>
@@ -451,7 +451,7 @@ function EditorCanvas({
               <button
                 onClick={handleExecuteManual}
                 disabled={isExecuting || !!executeManualMutation.isPending}
-                className="flex items-center space-x-2 px-4 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors duration-200 font-medium shadow-[0_6px_20px_rgba(34,197,94,0.25)]"
+                className="flex justify-center  py-1.5 gap-2 px-2 items-center  rounded-theme bg-primary text-[var(--primary-foreground)] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-200 font-medium shadow-theme"
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z"/>
@@ -465,7 +465,7 @@ function EditorCanvas({
 
       <div className="flex flex-grow overflow-hidden">
         {showExecutionViewer && (
-          <div className="w-full bg-[#0c2025] border-r border-[#164955] p-4 overflow-y-auto">
+          <div className="w-full bg-sidebar border-r border-border p-4 overflow-y-auto">
             <ExecutionViewer workflowId={params.workflowId} />
           </div>
         )}
@@ -482,28 +482,28 @@ function EditorCanvas({
             onNodeDoubleClick={handleNodeDoubleClick}
             nodeTypes={{ flowNode: FlowNode, conditionNode: ConditionNode, triggerNode: TriggerNode }}
             edgeTypes={{ interactive: InteractiveEdge }}
-            style={{ backgroundColor: '#000000' }}
+            style={{ backgroundColor: 'var(--background)' }}
             proOptions={{ hideAttribution: true }}
             fitView
             fitViewOptions={{ padding: 0.05 }}
             defaultViewport={{ x: 0, y: 0, zoom: 0.2 }}
             defaultEdgeOptions={{
               style: {
-                stroke: "#000000",
-                strokeWidth: 2,
+                stroke: "#1da1f2",
+                strokeWidth: 3,
                 strokeDasharray: "8,4",
               },
               type: "interactive",
             }}
           >
-            <Background color="#000000" gap={28} size={1} style={{ backgroundColor: "#000000" }} />
+            <Background color="#1da1f2" gap={28} size={1} style={{ backgroundColor: 'var(--background)' }} />
             <Controls />
             <MiniMap
-              nodeColor={() => '#164955'}
-              nodeStrokeColor={() => '#4de8e8'}
+              nodeColor={() => 'var(--muted)'}
+              nodeStrokeColor={() => '#1da1f2'}
               nodeStrokeWidth={1}
-              maskColor="rgba(10,26,32,0.85)"
-              style={{ backgroundColor: '#0a1a20' }}
+              maskColor="rgba(0,0,0,0.85)"
+              style={{ backgroundColor: 'var(--sidebar)' }}
             />
           </ReactFlow>
         </div>
@@ -518,6 +518,8 @@ function EditorCanvas({
         onNodeDataChange={handleNodeDataChange}
         workflowData={workflowData}
         initialTab={propertiesInitialTab}
+        graphNodes={nodes}
+        graphEdges={edges}
       />
     </div>
   )

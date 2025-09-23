@@ -8,34 +8,52 @@ type ConditionNodeData = {
 
 export default function ConditionNode({ data, selected }: NodeProps) {
   const d = (data as unknown as ConditionNodeData) || { label: "IF" }
+  const nodeType = (data as any)?.type as string | undefined
+  const iconSrc = nodeType ? `/icons/${nodeType}.png` : undefined
 
   return (
     <div
-      className={`w-16 h-16 rounded-lg border-2 shadow-lg backdrop-blur-sm transition-all duration-200 focus:outline-none hover:shadow-xl hover:shadow-[#4de8e8]/10 ${
+      className={`w-16 h-16 rounded-theme border-2 shadow-theme backdrop-blur-sm transition-all duration-200 focus:outline-none hover:shadow-xl ${
         selected
-          ? "border-[#4de8e8] shadow-xl shadow-[#4de8e8]/20 bg-[rgba(12,32,37,0.9)]"
-          : "border-[rgba(22,73,85,0.5)] bg-[rgba(12,32,37,0.8)] hover:border-[#4de8e8]/50"
+          ? "border-[var(--primary)] shadow-[0_0_20px_rgba(203,166,247,0.2)] bg-[var(--card)]"
+          : "border-border bg-[var(--card)] hover:border-[var(--primary)]/50"
       } relative`}
       role="group"
       aria-label={`${d.label} node`}
       tabIndex={0}
     >
-      <div className="flex flex-col items-center justify-center h-full p-1 drag-handle">
-        <div className="w-4 h-4 rounded-md bg-gradient-to-br from-[#4de8e8]/20 to-[#4de8e8]/30 border border-[#4de8e8]/30 flex items-center justify-center text-[10px] font-bold text-[#4de8e8] shadow-inner mb-0.5">
-          IF
-        </div>
-        <div className="text-center">
-          <div className="text-[8px] font-semibold text-[#4de8e8] leading-tight">{d.label || "If"}</div>
+      <div className="flex items-center justify-center h-full p-1 drag-handle">
+        <div className="w-8 h-8 rounded-md bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/30 border border-[var(--primary)]/30 flex items-center justify-center shadow-inner mb-0.5 overflow-hidden">
+          {iconSrc ? (
+            <span
+              aria-hidden
+              style={{
+                WebkitMaskImage: `url(${iconSrc})`,
+                maskImage: `url(${iconSrc})`,
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center',
+                maskPosition: 'center',
+                WebkitMaskSize: 'contain',
+                maskSize: 'contain',
+                backgroundColor: 'var(--primary)',
+                display: 'inline-block',
+                width: '1.5rem',
+                height: '1.5rem',
+              }}
+            />
+          ) : (
+            <span className="text-[14px] font-bold text-[var(--primary)]">IF</span>
+          )}
         </div>
       </div>
 
-      <h3 className="text-[6px] text-[#4de8e8]" style={{ position: 'absolute', right: 2, top: '20%', userSelect: 'none' }}>True</h3>
-      <h3 className="text-[6px] text-[#4de8e8]" style={{ position: 'absolute', right: 2, top: '60%', userSelect: 'none' }}>False</h3>
+      {/* No labels; image-only node */}
 
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-1.5 !h-1.5 !bg-[#0a1a20] !border !border-[#4de8e8]/60 hover:!border-[#4de8e8] !shadow-lg hover:!shadow-[#4de8e8]/30 transition-all duration-200"
+        className="!w-1.5 !h-1.5 !bg-[#1da1f2] !border !border-[#1da1f2] hover:!border-[#1c9cf0] hover:!bg-[#1c9cf0] !shadow-lg hover:!shadow-[rgba(28,156,240,0.4)] transition-all duration-200"
         style={{ left: -4 }}
         aria-label="Input handle"
         id="in"
@@ -43,7 +61,7 @@ export default function ConditionNode({ data, selected }: NodeProps) {
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-1.5 !h-1.5 !bg-[#0a1a20] !border !border-[#4de8e8]/60 hover:!border-[#4de8e8] !shadow-lg hover:!shadow-[#4de8e8]/30 transition-all duration-200"
+        className="!w-1.5 !h-1.5 !bg-[#1da1f2] !border !border-[#1da1f2] hover:!border-[#1c9cf0] hover:!bg-[#1c9cf0] !shadow-lg hover:!shadow-[rgba(28,156,240,0.4)] transition-all duration-200"
         style={{ right: -4, top: "30%" }}
         aria-label="True output"
         id="true"
@@ -51,7 +69,7 @@ export default function ConditionNode({ data, selected }: NodeProps) {
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-1.5 !h-1.5 !bg-[#0a1a20] !border !border-[#4de8e8]/60 hover:!border-[#4de8e8] !shadow-lg hover:!shadow-[#4de8e8]/30 transition-all duration-200"
+        className="!w-1.5 !h-1.5 !bg-[#1da1f2] !border !border-[#1da1f2] hover:!border-[#1c9cf0] hover:!bg-[#1c9cf0] !shadow-lg hover:!shadow-[rgba(28,156,240,0.4)] transition-all duration-200"
         style={{ right: -4, top: "70%" }}
         aria-label="False output"
         id="false"

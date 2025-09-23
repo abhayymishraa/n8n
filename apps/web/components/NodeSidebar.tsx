@@ -120,19 +120,19 @@ export default function NodeSidebar({ onNodeClick, isOpen }: NodeSidebarProps) {
   if (!isOpen) return null
 
   return (
-    <aside className="w-80 h-full bg-[rgba(10,26,32,0.9)] backdrop-blur-md border-l border-[rgba(22,73,85,0.5)] shadow-[0_-8px_30px_rgba(0,0,0,0.3)] overflow-y-auto">
+    <aside className="w-96 h-full bg-sidebar backdrop-blur-md border-l border-border shadow-theme overflow-y-auto">
       <div className="p-5">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-sm font-semibold text-[#4de8e8] tracking-tight">What happens next?</h2>
+          <h2 className="text-sm font-semibold text-primary tracking-tight">What happens next?</h2>
         </div>
 
         <div className="relative mb-5">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <IoSearch className="text-[#36a5a5]" />
+            <IoSearch className="text-[var(--muted-foreground)]" />
           </div>
           <input
             type="text"
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm text-[#4de8e8] placeholder-[#36a5a5] bg-[rgba(15,48,57,0.85)] border border-[rgba(22,73,85,0.5)] focus:outline-none focus:ring-2 focus:ring-[#4de8e8]/70 focus:border-[#4de8e8]/50 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 rounded-theme text-sm text-primary placeholder-[var(--muted-foreground)] bg-[var(--popover)] border border-border focus:outline-none focus:ring-2 focus:ring-[var(--ring)]/70 focus:border-[var(--ring)]/50 transition-all"
             placeholder="Search nodes..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -147,13 +147,13 @@ export default function NodeSidebar({ onNodeClick, isOpen }: NodeSidebarProps) {
             return (
               <div
                 key={category.group}
-                className="rounded-xl overflow-hidden border border-[rgba(22,73,85,0.5)] bg-[rgba(12,32,37,0.7)] hover:border-[#4de8e8]/40 transition-colors"
+                className="rounded-theme overflow-hidden border border-border bg-[var(--card)] hover:border-primary/40 transition-colors"
               >
                 <div
-                  className="flex items-center p-4 cursor-pointer hover:bg-[rgba(77,232,232,0.05)] transition-colors group"
+                  className="flex items-center p-4 cursor-pointer hover:bg-[rgba(203,166,247,0.08)] transition-colors group"
                   onClick={() => toggleCategory(category.group)}
                 >
-                  <div className="w-6 h-6 mr-3 flex-shrink-0 text-[#4de8e8] group-hover:text-[#4de8e8] transition-colors">
+                  <div className="w-6 h-6 mr-3 flex-shrink-0 text-primary group-hover:text-primary transition-colors">
                     {category.group === "ai" && <IoRocket className="w-5 h-5" />}
                     {category.group === "action" && <IoServer className="w-5 h-5" />}
                     {category.group === "data" && <IoLayers className="w-5 h-5" />}
@@ -162,36 +162,53 @@ export default function NodeSidebar({ onNodeClick, isOpen }: NodeSidebarProps) {
                     {category.group === "trigger" && <IoFlash className="w-5 h-5" />}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-[#4de8e8] group-hover:text-[#4de8e8] transition-colors">
+                    <h3 className="text-sm font-semibold text-primary group-hover:text-primary transition-colors">
                       {category.title}
                     </h3>
-                    <p className="text-[11px] text-[#36a5a5] mt-0.5">{category.description}</p>
+                    <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">{category.description}</p>
                   </div>
-                  <div className="ml-auto text-[#36a5a5] group-hover:text-[#4de8e8] transition-colors">
+                  <div className="ml-auto text-[var(--muted-foreground)] group-hover:text-primary transition-colors">
                     {isExpanded ? <IoChevronDown className="h-5 w-5" /> : <IoChevronForward className="h-5 w-5" />}
                   </div>
                 </div>
 
                 {shouldShowNodes && (
-                  <div className="p-3 border-t border-[rgba(22,73,85,0.5)] bg-[rgba(10,26,32,0.75)]">
+                  <div className="p-3 border-t border-border bg-[var(--sidebar)]/40">
                     {category.nodes.map((node) => (
                       <div
                         key={node.type}
-                        className="p-3 rounded-lg cursor-grab active:cursor-grabbing transition-all border border-[rgba(22,73,85,0.3)] hover:border-[#4de8e8]/50 hover:bg-[rgba(77,232,232,0.12)] hover:shadow-[0_6px_20px_rgba(77,232,232,0.18)] group mb-2"
+                        className="p-3 rounded-theme cursor-grab active:cursor-grabbing transition-all border border-border hover:border-primary/60 hover:bg-[rgba(203,166,247,0.12)] hover:shadow-theme group mb-2"
                         draggable
                         onDragStart={(e) => onDragStart(e, node)}
                         onDragEnd={onDragEnd}
                         onClick={() => onNodeClick(node)}
                       >
                         <div className="flex items-center">
-                          <span className="w-8 h-8 mr-3 flex items-center justify-center bg-[#4de8e8]/20 border border-[#4de8e8]/30 rounded-lg text-xs font-bold text-[#4de8e8] group-hover:bg-[#4de8e8]/30 group-hover:text-[#4de8e8] transition-colors">
-                            {node.icon.charAt(0).toUpperCase()}
+                          <span className="w-8 h-8 mr-3 flex items-center justify-center bg-primary/20 border border-primary/30 rounded-theme text-xs font-bold text-primary group-hover:bg-primary/30 group-hover:text-primary transition-colors overflow-hidden">
+                            <span
+                              aria-hidden
+                              className="min-w-5 min"
+                              style={{
+                                WebkitMaskImage: `url(/icons/${node.type}.png)`,
+                                maskImage: `url(/icons/${node.type}.png)`,
+                                WebkitMaskRepeat: 'no-repeat',
+                                maskRepeat: 'no-repeat',
+                                WebkitMaskPosition: 'center',
+                                maskPosition: 'center',
+                                WebkitMaskSize: 'contain',
+                                maskSize: 'contain',
+                                backgroundColor: 'var(--primary)',
+                                display: 'inline-block',
+                                width: '1.25rem',
+                                height: '1.25rem',
+                              }}
+                            />
                           </span>
                           <div>
-                            <p className="text-sm font-medium text-[#4de8e8] group-hover:text-[#4de8e8] transition-colors">
+                            <p className="text-sm font-medium text-primary group-hover:text-primary transition-colors">
                               {node.displayName}
                             </p>
-                            <p className="text-[11px] text-[#36a5a5]">{node.description}</p>
+                            <p className="text-[11px] text-[var(--muted-foreground)]">{node.description}</p>
                           </div>
                         </div>
                       </div>
@@ -202,20 +219,20 @@ export default function NodeSidebar({ onNodeClick, isOpen }: NodeSidebarProps) {
             )
           })}
 
-          <div className="rounded-xl overflow-hidden border border-[rgba(22,73,85,0.5)] mt-5 bg-[rgba(12,32,37,0.7)]">
-            <div className="flex items-center p-4 cursor-pointer hover:bg-[rgba(77,232,232,0.05)] transition-colors group">
+          <div className="rounded-theme overflow-hidden border border-border mt-5 bg-[var(--card)]">
+            <div className="flex items-center p-4 cursor-pointer hover:bg-[rgba(203,166,247,0.08)] transition-colors group">
               <div className="w-6 h-6 mr-3 flex-shrink-0">
-                <IoFlash className="h-5 w-5 text-[#4de8e8] group-hover:text-[#4de8e8] transition-colors" />
+                <IoFlash className="h-5 w-5 text-primary group-hover:text-primary transition-colors" />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-medium text-[#4de8e8] group-hover:text-[#4de8e8] transition-colors">
+                <h3 className="text-sm font-medium text-primary group-hover:text-primary transition-colors">
                   Add another trigger
                 </h3>
-                <p className="text-[11px] text-[#36a5a5] mt-0.5">
+                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">
                   Triggers start your workflow. Workflows can have multiple triggers.
                 </p>
               </div>
-              <div className="ml-auto text-[#36a5a5] group-hover:text-[#4de8e8] transition-colors">
+              <div className="ml-auto text-[var(--muted-foreground)] group-hover:text-primary transition-colors">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-5 w-5"

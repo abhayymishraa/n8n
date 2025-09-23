@@ -305,6 +305,13 @@ export const NODES_REGISTRY: NodeDefinition[] = [
     group: "ai",
     properties: [
       {
+        displayName: "Credentials",
+        name: "credentialId",
+        type: "credential",
+        required: false,
+        credentialTypes: ['GEMINI_API', 'OPENAI_API']
+      },
+      {
         displayName: "Provider",
         name: "provider",
         type: "options",

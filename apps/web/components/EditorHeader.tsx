@@ -15,18 +15,18 @@ export default function EditorHeader({ workflowName, onSave, isSaving, onToggleN
   const router = useRouter()
 
   return (
-    <div className="p-3 border-b bg-white flex items-center">
+    <div className="p-3 border-b border-border bg-sidebar text-[var(--sidebar-foreground)] flex items-center">
       <div className="flex space-x-4">
-        <button onClick={() => router.push("/dashboard")} className="text-gray-600 hover:text-gray-800">
+        <button onClick={() => router.push("/dashboard")} className="text-[var(--muted-foreground)] hover:text-foreground">
           &larr; Back
         </button>
-        <h1 className="text-xl font-medium">{workflowName}</h1>
+        <h1 className="text-xl font-medium text-foreground">{workflowName}</h1>
       </div>
 
       <div className="ml-auto flex items-center space-x-3">
         <button
           onClick={onToggleNodePanel}
-          className="flex items-center space-x-1 px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+          className="flex items-center space-x-1 px-3 py-1.5 bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)] rounded-theme hover:opacity-90"
         >
           <IoAdd size={18} />
           <span>Add</span>
@@ -35,7 +35,7 @@ export default function EditorHeader({ workflowName, onSave, isSaving, onToggleN
         <button
           onClick={onSave}
           disabled={isSaving}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-gray-400"
+          className="bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)] px-4 py-2 rounded-theme hover:opacity-90 disabled:opacity-60"
         >
           {isSaving ? "Saving..." : "Save"}
         </button>
