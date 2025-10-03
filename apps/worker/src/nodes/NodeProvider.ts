@@ -6,17 +6,68 @@ import { TemplateEngine } from "../utils/TemplateEngine";
 
 const ManualTriggerNode: NodeImplementation = {
   execute: async (input: any, context: NodeExecutionContext) => {
-    console.log(`🎯 Manual trigger executed for workflow: ${context.workflowId}`);
     return input;
   },
 };
 
 const WebhookTriggerNode: NodeImplementation = {
   execute: async (input: any, context: NodeExecutionContext) => {
-    console.log(`🪝 Webhook trigger executed for workflow: ${context.workflowId}`);
     const payload = context.fullDataPacket?.trigger?.output;
     return payload !== undefined ? payload : input;
   },
+};
+
+function pickText(input: any): string {
+  if (typeof input === 'string') return input;
+  if (input && typeof input.output === 'string') return input.output;
+  if (input && typeof input.text === 'string') return input.text;
+  try { return JSON.stringify(input ?? ''); } catch { return String(input ?? ''); }
+}
+
+const CodeStripNode: NodeImplementation = {
+  execute: async (input: any) => {
+    const text = pickText(input);
+    const fenceRegex = /```[\s\S]*?```/g;
+    const matches = text.match(fenceRegex);
+    let output: string;
+    if (matches && matches.length > 0) {
+      const cleaned = matches.map(block => {
+        const withoutFence = block.replace(/^```[a-zA-Z0-9_-]*\n?/, '').replace(/```\s*$/, '');
+        return withoutFence.trim();
+      });
+      output = cleaned.join('\n\n');
+    } else {
+      output = text.replace(/`{1,3}([^`]*?)`{1,3}/g, '$1');
+    }
+    return typeof input === 'object' && input !== null ? { ...input, output } : output;
+  }
+};
+
+const CodeCleanNode: NodeImplementation = {
+  execute: async (input: any, context: NodeExecutionContext) => {
+    const config = context.getNodeConfig();
+    const { language = 'auto', prettify = true } = config || {};
+    let text = pickText(input);
+    text = text
+      .replace(/```[a-zA-Z0-9_-]*\n?/g, '')
+      .replace(/```\s*$/g, '')
+      .replace(/`{1,3}([^`]*?)`{1,3}/g, '$1');
+    text = text.replace(/\r\n?/g, '\n');
+    const lines = text.split('\n');
+    const nonEmpty = lines.filter(l => l.trim().length > 0);
+    const indents = nonEmpty.map(l => (l.match(/^\s*/)?.[0].length ?? 0));
+    const minIndent = indents.length ? Math.min(...indents) : 0;
+    let output = lines.map(l => l.slice(minIndent)).join('\n').trim();
+
+    const lang = String(language || '').toLowerCase();
+    if (prettify) {
+      if (lang === 'json' || (lang === 'auto' && output.trim().startsWith('{'))) {
+        try { output = JSON.stringify(JSON.parse(output), null, 2); } catch { /* ignore */ }
+      }
+    }
+
+    return typeof input === 'object' && input !== null ? { ...input, output } : output;
+  }
 };
 
 const LogNode: NodeImplementation = {
@@ -24,7 +75,6 @@ const LogNode: NodeImplementation = {
     const config = context.getNodeConfig();
     let logMessage = config.message || '{{ $json }}';
 
-    // Use enhanced template engine for better data access
     const templateContext = {
       input,
       fullDataPacket: context.fullDataPacket,
@@ -90,7 +140,6 @@ const TelegramSendNode: NodeImplementation = {
 
     const botToken = credentials.data.token;
 
-    // Use enhanced template engine for better data access
     const templateContext = {
       input,
       fullDataPacket: context.fullDataPacket,
@@ -134,23 +183,19 @@ const HttpRequestNode: NodeImplementation = {
       throw new Error("URL is required for HTTP request");
     }
 
-    // Use enhanced template engine for better data access
     const templateContext = {
       input,
       fullDataPacket: context.fullDataPacket,
       trigger: context.fullDataPacket.trigger?.output || {}
     };
 
-    // Template the URL
     const templatedUrl = TemplateEngine.process(url, templateContext);
 
-    // Start with template headers
     const templatedHeaders: Record<string, string> = {};
     for (const [key, value] of Object.entries(headers)) {
       templatedHeaders[key] = TemplateEngine.process(String(value), templateContext);
     }
 
-    // Add authentication headers if credential is provided
     if (credentialId) {
       const credentials = await context.getCredential(credentialId);
       if (credentials) {
@@ -160,7 +205,6 @@ const HttpRequestNode: NodeImplementation = {
       }
     }
 
-    // Template body if it exists
     let templatedBody = body;
     if (body && typeof body === 'string') {
       templatedBody = TemplateEngine.process(body, templateContext);
@@ -357,6 +401,85 @@ const EmailNode: NodeImplementation = {
   }
 }
 
+export const GoogleGeminiNode: NodeImplementation = {
+  execute: async (input: any, context: NodeExecutionContext) => {
+    const config = context.getNodeConfig();
+    const {
+      model = "gemini-2.0-flash",
+      temperature = 0.7,
+      maxTokens = 2000,
+      prompt,
+      task,
+      credentialId,
+      apiKey,
+    } = config;
+
+    const userText = (task || prompt || "") as string;
+
+    let geminiKey = apiKey as string | undefined;
+    if (!geminiKey && credentialId) {
+      const cred = await context.getCredential(credentialId);
+      geminiKey = cred?.data?.apiKey as string | undefined;
+    }
+    if (!geminiKey) {
+      throw new Error("Gemini API key is required (set via credentialId or apiKey)");
+    }
+
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-goog-api-key": geminiKey,
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: userText }] }],
+          generationConfig: {
+            temperature,
+            maxOutputTokens: maxTokens,
+          },
+        }),
+      }
+    );
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(`Gemini HTTP error: ${resp.status} ${txt}`);
+    }
+
+    const data = await resp.json();
+
+    const outputText =
+      data?.candidates?.[0]?.content?.parts?.[0]?.text || JSON.stringify(data);
+
+    const usage = data?.usageMetadata
+      ? {
+          promptTokens: data.usageMetadata.promptTokenCount,
+          candidatesTokens: data.usageMetadata.candidatesTokenCount,
+          totalTokens: data.usageMetadata.totalTokenCount,
+        }
+      : undefined;
+
+    return {
+      task: userText || "generic",
+      output: outputText,
+      usage,
+      metadata: {
+        provider: "gemini",
+        model,
+        temperature,
+        maxTokens,
+        executionTime: Date.now(),
+        nodeId: context.nodeId,
+      },
+    };
+  },
+};
+
+
+
+
 const nodeRegistry: Record<string, NodeImplementation> = {
   'Manual': ManualTriggerNode,
   'webhook': WebhookTriggerNode,
@@ -369,7 +492,9 @@ const nodeRegistry: Record<string, NodeImplementation> = {
   'email': EmailNode,
   'ai-agent': AIAgentNode,
   'workflow-agent': WorkflowAgentNode,
-  'google-gemini': AIAgentNode,
+  'code-strip': CodeStripNode,
+  'code-clean': CodeCleanNode,
+  'google-gemini': GoogleGeminiNode,
   'gemini': AIAgentNode,
 };
 

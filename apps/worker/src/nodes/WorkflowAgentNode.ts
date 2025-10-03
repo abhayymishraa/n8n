@@ -10,7 +10,7 @@ export const WorkflowAgentNode: NodeImplementation = {
       temperature = 0.7,
       maxTokens = 2000,
       systemPrompt,
-      mode = "orchestrate", // orchestrate, optimize, predict, learn
+      mode = "orchestrate", 
       enableMemory = true,
       enableLearning = true,
       enableAutoOptimization = false

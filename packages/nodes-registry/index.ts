@@ -207,6 +207,49 @@ export const NODES_REGISTRY: NodeDefinition[] = [
     ],
   },
   {
+    type: "code-strip",
+    displayName: "Code Strip",
+    description: "Remove markdown code fences/backticks and return inner code",
+    icon: "Scissors",
+    role: "action",
+    group: "data",
+    properties: []
+  },
+  {
+    type: "code-clean",
+    displayName: "Code Clean",
+    description: "Normalize code: strip fences, de-indent, optional prettify",
+    icon: "Wand2",
+    role: "action",
+    group: "data",
+    properties: [
+      {
+        displayName: "Language",
+        name: "language",
+        type: "options",
+        required: false,
+        default: "auto",
+        options: [
+          { name: "Auto", value: "auto" },
+          { name: "JSON", value: "json" },
+          { name: "JavaScript", value: "javascript" },
+          { name: "TypeScript", value: "typescript" },
+          { name: "Python", value: "python" },
+          { name: "Go", value: "go" },
+          { name: "Ruby", value: "ruby" },
+          { name: "Java", value: "java" }
+        ]
+      },
+      {
+        displayName: "Prettify",
+        name: "prettify",
+        type: "boolean",
+        required: false,
+        default: true
+      }
+    ]
+  },
+  {
     type: "data-transform",
     displayName: "Data Transform",
     description: "Transform and manipulate data fields",

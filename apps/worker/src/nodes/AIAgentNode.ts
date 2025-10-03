@@ -4,6 +4,8 @@ import { SimpleAIAgent, SimpleAgentConfig } from "../agents/SimpleAIAgent";
 export const AIAgentNode: NodeImplementation = {
   execute: async (input: any, context: NodeExecutionContext) => {
     const config = context.getNodeConfig();
+    console.log("config", config)
+    console.log("input", input)
     const {
       provider = "openai",
       model,
@@ -73,7 +75,6 @@ export const AIAgentNode: NodeImplementation = {
         return result;
       }
 
-      // Otherwise use SimpleAIAgent (OpenAI default)
       const agentConfig: SimpleAgentConfig = {
         provider: 'openai',
         model: model || 'gpt-4o-mini',
